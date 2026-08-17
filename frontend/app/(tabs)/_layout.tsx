@@ -2,25 +2,32 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
+import { useTheme } from '@/store/ThemeContext';
 
 export default function TabLayout() {
+  const { activeColors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary.DEFAULT,
-        tabBarInactiveTintColor: colors.neutral.textMuted,
+        tabBarInactiveTintColor: activeColors.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: colors.neutral.border,
+          backgroundColor: activeColors.card,
+          borderTopColor: activeColors.border,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: 64,
+          paddingBottom: 10,
           paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
         },
         headerStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: activeColors.card,
         },
-        headerTintColor: colors.neutral.textPrimary,
+        headerTintColor: activeColors.textPrimary,
         headerTitleStyle: {
           fontWeight: '700',
         },
@@ -30,9 +37,10 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Home',
+          headerShown: false,
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -40,9 +48,10 @@ export default function TabLayout() {
         name="predict"
         options={{
           title: 'Predict Crop',
+          headerShown: false,
           tabBarLabel: 'Predict',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="leaf-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'leaf' : 'leaf-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -50,9 +59,10 @@ export default function TabLayout() {
         name="history"
         options={{
           title: 'History',
+          headerShown: false,
           tabBarLabel: 'History',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'time' : 'time-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -60,9 +70,10 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
+          headerShown: false,
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
         }}
       />

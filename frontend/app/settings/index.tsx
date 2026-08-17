@@ -3,10 +3,15 @@ import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { APP_CONFIG } from '@/constants/config';
+import { useTheme } from '@/store/ThemeContext';
 
 export default function SettingsScreen() {
   const [notifications, setNotifications] = React.useState(true);
   const [weatherAlerts, setWeatherAlerts] = React.useState(true);
+  const { theme, setThemeSetting, activeColors } = useTheme();
+
+  const styles = getStyles(activeColors);
+  const isDarkMode = theme === 'dark';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -21,6 +26,21 @@ export default function SettingsScreen() {
 
           <View style={styles.settingItem}>
             <View style={styles.settingTextContainer}>
+              <Text style={styles.settingLabel}>Dark Mode</Text>
+              <Text style={styles.settingDescription}>
+                Toggle dark theme on or off
+              </Text>
+            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={(val) => setThemeSetting(val ? 'dark' : 'light')}
+              trackColor={{ false: activeColors.border, true: colors.primary.light }}
+              thumbColor={isDarkMode ? colors.primary.DEFAULT : '#f4f3f4'}
+            />
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingTextContainer}>
               <Text style={styles.settingLabel}>Weather & Pest Alerts</Text>
               <Text style={styles.settingDescription}>
                 Receive rain forecasts and temperature warnings
@@ -29,7 +49,7 @@ export default function SettingsScreen() {
             <Switch
               value={weatherAlerts}
               onValueChange={setWeatherAlerts}
-              trackColor={{ false: colors.neutral.border, true: colors.primary.light }}
+              trackColor={{ false: activeColors.border, true: colors.primary.light }}
               thumbColor={weatherAlerts ? colors.primary.DEFAULT : '#f4f3f4'}
             />
           </View>
@@ -44,7 +64,7 @@ export default function SettingsScreen() {
             <Switch
               value={notifications}
               onValueChange={setNotifications}
-              trackColor={{ false: colors.neutral.border, true: colors.primary.light }}
+              trackColor={{ false: activeColors.border, true: colors.primary.light }}
               thumbColor={notifications ? colors.primary.DEFAULT : '#f4f3f4'}
             />
           </View>
@@ -70,10 +90,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (activeColors: typeof colors.neutral) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.background,
+    backgroundColor: activeColors.background,
   },
   content: {
     padding: 16,
@@ -84,25 +104,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: colors.neutral.textPrimary,
+    color: activeColors.textPrimary,
   },
   subtitle: {
     fontSize: 14,
-    color: colors.neutral.textSecondary,
+    color: activeColors.textSecondary,
     marginTop: 4,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: activeColors.card,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.neutral.border,
+    borderColor: activeColors.border,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral.textPrimary,
+    color: activeColors.textPrimary,
     marginBottom: 12,
   },
   settingItem: {
@@ -111,7 +131,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.border,
+    borderBottomColor: activeColors.border,
   },
   settingTextContainer: {
     flex: 1,
@@ -120,11 +140,11 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral.textPrimary,
+    color: activeColors.textPrimary,
   },
   settingDescription: {
     fontSize: 12,
-    color: colors.neutral.textSecondary,
+    color: activeColors.textSecondary,
     marginTop: 2,
   },
   infoRow: {
@@ -132,16 +152,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.border,
+    borderBottomColor: activeColors.border,
   },
   infoLabel: {
     fontSize: 14,
-    color: colors.neutral.textSecondary,
+    color: activeColors.textSecondary,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral.textPrimary,
+    color: activeColors.textPrimary,
   },
   noBorder: {
     borderBottomWidth: 0,

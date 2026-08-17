@@ -7,161 +7,132 @@ import { Button } from '@/components/Button';
 import { SoilInput } from '@/components/SoilInput';
 import { AnimatedCard } from '@/components/AnimatedCard';
 import { colors } from '@/constants/colors';
-import { APP_CONFIG } from '@/constants/config';
 import { useTheme } from '@/store/ThemeContext';
 
-export default function PredictScreen() {
+export default function ExtractedScreen() {
   const router = useRouter();
   const { activeColors } = useTheme();
 
-  // Soil & Climate parameters
+  // Extracted soil metrics state (pre-populated from OCR scan simulation)
   const [nitrogen, setNitrogen] = useState('90');
   const [phosphorus, setPhosphorus] = useState('42');
   const [potassium, setPotassium] = useState('43');
   const [ph, setPh] = useState('6.5');
-  const [temperature, setTemperature] = useState('25.5');
-  const [humidity, setHumidity] = useState('80');
+  const [organicCarbon, setOrganicCarbon] = useState('0.75');
   const [rainfall, setRainfall] = useState('202');
 
-  const handlePredict = () => {
+  const handleGenerateRecommendations = () => {
     router.push('/prediction/result');
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: activeColors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: activeColors.background }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
         <AnimatedCard delay={60}>
           <View style={styles.header}>
-            <View style={styles.headerTitleRow}>
-              <View style={[styles.headerIconBadge, { backgroundColor: colors.primary.subtle }]}>
-                <Ionicons name="leaf" size={22} color={colors.primary.DEFAULT} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.title, { color: activeColors.textPrimary }]}>AI Crop Advisor</Text>
-                <Text style={[styles.subtitle, { color: activeColors.textSecondary }]}>
-                  Find the best crop for your soil & climate
-                </Text>
-              </View>
+            <View style={[styles.successBadge, { backgroundColor: colors.primary.subtle }]}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.primary.DEFAULT} />
+              <Text style={[styles.successBadgeText, { color: colors.primary.DEFAULT }]}>AI Extraction Complete</Text>
             </View>
+            <Text style={[styles.title, { color: activeColors.textPrimary }]}>Extracted Soil Parameters</Text>
+            <Text style={[styles.subtitle, { color: activeColors.textSecondary }]}>
+              Review and confirm the soil test values extracted from your report. You can edit any parameter if needed.
+            </Text>
           </View>
         </AnimatedCard>
 
-        {/* Group 1: 🌱 Soil Nutrients */}
+        {/* Section 1: Extracted Nutrients */}
         <AnimatedCard delay={120}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
               <View style={[styles.sectionIconBadge, { backgroundColor: colors.primary.subtle }]}>
-                <Ionicons name="nutrition-outline" size={18} color={colors.primary.DEFAULT} />
+                <Ionicons name="flask-outline" size={18} color={colors.primary.DEFAULT} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌱 Soil Nutrients</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌱 Soil Nutrients (NPK)</Text>
             </View>
 
             <SoilInput
               label="Nitrogen (N)"
               value={nitrogen}
               onChangeText={setNitrogen}
-              unit={APP_CONFIG.defaultSoilLimits.nitrogen.unit}
-              min={APP_CONFIG.defaultSoilLimits.nitrogen.min}
-              max={APP_CONFIG.defaultSoilLimits.nitrogen.max}
+              unit="mg/kg"
               icon="flask-outline"
             />
-
             <SoilInput
               label="Phosphorus (P)"
               value={phosphorus}
               onChangeText={setPhosphorus}
-              unit={APP_CONFIG.defaultSoilLimits.phosphorus.unit}
-              min={APP_CONFIG.defaultSoilLimits.phosphorus.min}
-              max={APP_CONFIG.defaultSoilLimits.phosphorus.max}
+              unit="mg/kg"
               icon="color-filter-outline"
             />
-
             <SoilInput
               label="Potassium (K)"
               value={potassium}
               onChangeText={setPotassium}
-              unit={APP_CONFIG.defaultSoilLimits.potassium.unit}
-              min={APP_CONFIG.defaultSoilLimits.potassium.min}
-              max={APP_CONFIG.defaultSoilLimits.potassium.max}
+              unit="mg/kg"
               icon="sparkles-outline"
             />
           </View>
         </AnimatedCard>
 
-        {/* Group 2: 🧪 Soil pH & Chemistry */}
+        {/* Section 2: Soil Chemistry & pH */}
         <AnimatedCard delay={180}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
               <View style={[styles.sectionIconBadge, { backgroundColor: colors.accent.light }]}>
                 <Ionicons name="options-outline" size={18} color={colors.accent.dark} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🧪 Soil pH Level</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🧪 Soil pH & Organic Matter</Text>
             </View>
 
             <SoilInput
-              label="Soil pH"
+              label="Soil pH Level"
               value={ph}
               onChangeText={setPh}
-              unit={APP_CONFIG.defaultSoilLimits.ph.unit}
-              min={APP_CONFIG.defaultSoilLimits.ph.min}
-              max={APP_CONFIG.defaultSoilLimits.ph.max}
+              unit="pH"
               icon="speedometer-outline"
+            />
+            <SoilInput
+              label="Organic Carbon (OC)"
+              value={organicCarbon}
+              onChangeText={setOrganicCarbon}
+              unit="%"
+              icon="leaf-outline"
             />
           </View>
         </AnimatedCard>
 
-        {/* Group 3: 🌦️ Climate Parameters */}
+        {/* Section 3: Climate & Location Parameters */}
         <AnimatedCard delay={240}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
               <View style={[styles.sectionIconBadge, { backgroundColor: '#E3F2FD' }]}>
                 <Ionicons name="partly-sunny-outline" size={18} color="#0288D1" />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌦️ Climate Parameters</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌦️ Regional Climate Metrics</Text>
             </View>
 
             <SoilInput
-              label="Temperature"
-              value={temperature}
-              onChangeText={setTemperature}
-              unit="°C"
-              min={10}
-              max={50}
-              icon="thermometer-outline"
-            />
-
-            <SoilInput
-              label="Humidity"
-              value={humidity}
-              onChangeText={setHumidity}
-              unit="%"
-              min={20}
-              max={100}
-              icon="water-outline"
-            />
-
-            <SoilInput
-              label="Rainfall"
+              label="Annual Rainfall"
               value={rainfall}
               onChangeText={setRainfall}
-              unit={APP_CONFIG.defaultSoilLimits.rainfall.unit}
-              min={APP_CONFIG.defaultSoilLimits.rainfall.min}
-              max={APP_CONFIG.defaultSoilLimits.rainfall.max}
+              unit="mm"
               icon="rainy-outline"
             />
           </View>
         </AnimatedCard>
 
-        {/* Action button */}
+        {/* Primary CTA */}
         <AnimatedCard delay={300} style={{ marginBottom: 28 }}>
           <Button
-            title="Predict Best Crop"
-            onPress={handlePredict}
-            style={styles.submitButton}
+            title="Generate Crop Recommendations →"
+            onPress={handleGenerateRecommendations}
+            style={styles.generateBtn}
           />
         </AnimatedCard>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -177,19 +148,21 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
-  headerTitleRow: {
+  successBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
-  headerIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  successBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   title: {
     fontSize: 22,
@@ -198,11 +171,12 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 18,
   },
   card: {
     padding: 18,
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     marginBottom: 18,
     shadowColor: '#000',
@@ -217,8 +191,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionIconBadge: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -227,7 +201,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  submitButton: {
+  generateBtn: {
     height: 52,
     borderRadius: 14,
   },

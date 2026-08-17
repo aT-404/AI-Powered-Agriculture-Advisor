@@ -3,93 +3,176 @@ import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { Crop } from '@/types/crop';
 import { colors } from '@/constants/colors';
+import { useTheme } from '@/store/ThemeContext';
 
 export interface CropCardProps {
   crop: Crop;
   onPress?: () => void;
+  variant?: 'list' | 'grid';
   style?: ViewStyle;
 }
 
-export const CropCard: React.FC<CropCardProps> = ({ crop, onPress, style }) => {
+export const CropCard: React.FC<CropCardProps> = ({ crop, onPress, variant = 'list', style }) => {
+  const { activeColors } = useTheme();
+
+  if (variant === 'grid') {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.gridCard,
+          { backgroundColor: activeColors.card, borderColor: activeColors.border },
+          style,
+        ]}
+        onPress={onPress}
+        activeOpacity={0.75}
+        disabled={!onPress}
+      >
+        <View style={[styles.gridIconContainer, { backgroundColor: colors.primary.subtle }]}>
+          <Ionicons name="leaf" size={24} color={colors.primary.DEFAULT} />
+        </View>
+        <Text style={[styles.gridCropName, { color: activeColors.textPrimary }]} numberOfLines={1}>
+          {crop.name.split(' (')[0]}
+        </Text>
+        <View style={[styles.categoryBadge, { backgroundColor: colors.primary.subtle }]}>
+          <Text style={[styles.categoryBadgeText, { color: colors.primary.DEFAULT }]}>
+            {crop.category}
+          </Text>
+        </View>
+        <Text style={[styles.gridDesc, { color: activeColors.textSecondary }]} numberOfLines={2}>
+          {crop.description}
+        </Text>
+        <View style={styles.gridFooter}>
+          <Text style={[styles.viewDetailsText, { color: colors.primary.DEFAULT }]}>View Details →</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <TouchableOpacity
-      style={[styles.card, style]}
+      style={[
+        styles.listCard,
+        { backgroundColor: activeColors.card, borderColor: activeColors.border },
+        style,
+      ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
       disabled={!onPress}
     >
-      <View style={styles.iconContainer}>
-        <Ionicons name="leaf-outline" size={24} color={colors.primary.DEFAULT} />
+      <View style={[styles.listIconContainer, { backgroundColor: colors.primary.subtle }]}>
+        <Ionicons name="leaf" size={24} color={colors.primary.DEFAULT} />
       </View>
       <View style={styles.infoContainer}>
-        <Text style={styles.cropName}>{crop.name}</Text>
+        <Text style={[styles.cropName, { color: activeColors.textPrimary }]}>{crop.name}</Text>
         {crop.scientificName ? (
-          <Text style={styles.scientificName}>{crop.scientificName}</Text>
+          <Text style={[styles.scientificName, { color: activeColors.textSecondary }]}>
+            {crop.scientificName}
+          </Text>
         ) : null}
-        <Text style={styles.categoryBadge}>{crop.category}</Text>
-        <Text style={styles.description} numberOfLines={2}>
+        <View style={[styles.categoryBadge, { backgroundColor: colors.primary.subtle }]}>
+          <Text style={[styles.categoryBadgeText, { color: colors.primary.DEFAULT }]}>
+            {crop.category}
+          </Text>
+        </View>
+        <Text style={[styles.description, { color: activeColors.textSecondary }]} numberOfLines={2}>
           {crop.description}
         </Text>
       </View>
       {onPress && (
-        <Ionicons name="chevron-forward" size={20} color={colors.neutral.textMuted} />
+        <Ionicons name="chevron-forward" size={18} color={activeColors.textSecondary} />
       )}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+  // Grid Card
+  gridCard: {
+    flex: 1,
+    margin: 6,
+    borderRadius: 18,
     padding: 14,
-    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.neutral.border,
-    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    justifyContent: 'space-between',
   },
-  iconContainer: {
+  gridIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary.subtle,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginBottom: 10,
+  },
+  gridCropName: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  gridDesc: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginVertical: 6,
+  },
+  gridFooter: {
+    marginTop: 8,
+    paddingTop: 8,
+  },
+  viewDetailsText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // List Card
+  listCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  listIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
   infoContainer: {
     flex: 1,
   },
   cropName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral.textPrimary,
+    fontWeight: '700',
   },
   scientificName: {
     fontSize: 12,
     fontStyle: 'italic',
-    color: colors.neutral.textSecondary,
     marginBottom: 2,
   },
   categoryBadge: {
-    fontSize: 11,
-    color: colors.primary.dark,
-    backgroundColor: colors.primary.subtle,
     alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     marginVertical: 4,
   },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   description: {
-    fontSize: 13,
-    color: colors.neutral.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
     marginTop: 2,
   },
 });

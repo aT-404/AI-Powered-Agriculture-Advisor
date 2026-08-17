@@ -3,28 +3,52 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
+import { ThemeProvider, useTheme } from '@/store/ThemeContext';
 
-export default function RootLayout() {
+function RootLayoutNav() {
+  const { theme, activeColors } = useTheme();
+
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#FFFFFF',
+            backgroundColor: activeColors.card,
           },
           headerTintColor: colors.primary.DEFAULT,
           headerTitleStyle: {
             fontWeight: '600',
           },
           contentStyle: {
-            backgroundColor: colors.neutral.background,
+            backgroundColor: activeColors.background,
           },
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="prediction/preview"
+          options={{
+            title: 'Report Preview',
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="prediction/analyzing"
+          options={{
+            title: 'Analyzing Soil',
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="prediction/extracted"
+          options={{
+            title: 'Extracted Parameters',
+            headerShown: true,
+          }}
+        />
         <Stack.Screen
           name="prediction/result"
           options={{
@@ -55,5 +79,13 @@ export default function RootLayout() {
         />
       </Stack>
     </SafeAreaProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutNav />
+    </ThemeProvider>
   );
 }
