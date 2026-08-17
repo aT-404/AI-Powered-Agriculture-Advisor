@@ -41,12 +41,14 @@ Follow these steps to run the application locally on your machine.
    git clone https://github.com/aT-404/AI-Powered-Agriculture-Advisor.git
    ```
 
-2. **Navigate into the project directory:**
+2. **Navigate into the frontend project directory:**
    ```bash
-   cd AI-Powered-Agriculture-Advisor
+   cd AI-Powered-Agriculture-Advisor/frontend
+   # or if you are in the repository root:
+   cd frontend
    ```
 
-3. **Install project dependencies:**
+3. **Install frontend dependencies:**
    ```bash
    npm install
    ```
@@ -71,30 +73,41 @@ Follow these steps to run the application locally on your machine.
 
 ## 2. Project Architecture Overview
 
-The application follows a **modular, separation-of-concerns** architecture designed for multi-developer collaboration:
+The repository is organized into distinct subdirectories (e.g. `frontend/`, `backend/`, `ml/`) so each team can develop independently without conflicting files:
+
+```text
+AI-Powered-Agriculture-Advisor/
+├── frontend/                     # React Native Expo Frontend Application
+├── backend/                      # Backend APIs & Server (Backend Team)
+├── ml/                           # TensorFlow Models & Training (ML Team)
+├── README.md                     # Repository Overview
+└── tutorial.md                   # Full Developer Tutorial & Guide
+```
+
+Inside `frontend/`, the application follows a **modular, separation-of-concerns** architecture:
 
 ```text
 ┌───────────────────────────────────────────────────────────┐
-│                    UI Layer (`app/`)                      │
+│              UI Layer (`frontend/app/`)                   │
 │   (Auth Routes, Main Tab Screens, Prediction & Crops)     │
 └───────────────┬───────────────────────────┬───────────────┘
                 │                           │
                 ▼                           ▼
 ┌───────────────────────────────┐ ┌─────────────────────────┐
 │ Reusable Components           │ │ Application Stores      │
-│ (`components/`)               │ │ (`store/`)              │
+│ (`frontend/components/`)      │ │ (`frontend/store/`)     │
 └───────────────┬───────────────┘ └─────────┬───────────────┘
                 │                           │
                 ▼                           ▼
 ┌───────────────────────────────────────────────────────────┐
-│                    Service Layer (`services/`)            │
+│              Service Layer (`frontend/services/`)         │
 │       (API Client, ML Prediction, Weather, Auth)          │
 └───────────────┬───────────────────────────┬───────────────┘
                 │                           │
                 ▼                           ▼
 ┌───────────────────────────────┐ ┌─────────────────────────┐
 │ Types & Data Models           │ │ Constants & Utilities   │
-│ (`types/`)                    │ │ (`constants/`, `utils/`)│
+│ (`frontend/types/`)           │ │ (`constants/`, `utils/`)│
 └───────────────────────────────┘ └─────────────────────────┘
 ```
 
@@ -103,75 +116,80 @@ The application follows a **modular, separation-of-concerns** architecture desig
 ## 3. Complete Folder Structure & Directory Map
 
 ```text
-├── app/                          # Expo Router file-based routing
-│   ├── _layout.tsx               # Root Stack navigation layout & providers
-│   ├── index.tsx                 # Entry/Welcome launcher screen
-│   ├── (auth)/                   # Authentication route group
-│   │   ├── _layout.tsx           # Stack layout for auth screens
-│   │   ├── login.tsx             # Sign In screen
-│   │   ├── register.tsx          # Account registration screen
-│   │   └── forgot-password.tsx   # Password reset screen
-│   ├── (tabs)/                   # Primary 4-Tab navigation group
-│   │   ├── _layout.tsx           # Bottom tab bar layout & icon config
-│   │   ├── home.tsx              # Home / Dashboard screen
-│   │   ├── predict.tsx           # Crop Soil input & prediction form
-│   │   ├── history.tsx           # Historical prediction records
-│   │   └── profile.tsx           # User profile & account overview
-│   ├── prediction/               # Crop prediction flows
-│   │   └── result.tsx            # ML prediction results & recommendations
-│   ├── crops/                    # Crop Library catalog
-│   │   ├── index.tsx             # Crop list with search & category filter
-│   │   └── [id].tsx              # Dynamic crop detail view
-│   └── settings/                 # App settings
-│       └── index.tsx             # Farm preferences & notifications
+├── frontend/                     # React Native Expo Frontend App
+│   ├── app/                      # Expo Router file-based routing
+│   │   ├── _layout.tsx           # Root Stack navigation layout & providers
+│   │   ├── index.tsx             # Entry/Welcome launcher screen
+│   │   ├── (auth)/               # Authentication route group
+│   │   │   ├── _layout.tsx       # Stack layout for auth screens
+│   │   │   ├── login.tsx         # Sign In screen
+│   │   │   ├── register.tsx      # Account registration screen
+│   │   │   └── forgot-password.tsx# Password reset screen
+│   │   ├── (tabs)/               # Primary 4-Tab navigation group
+│   │   │   ├── _layout.tsx       # Bottom tab bar layout & icon config
+│   │   │   ├── home.tsx          # Home / Dashboard screen
+│   │   │   ├── predict.tsx       # Crop Soil input & prediction form
+│   │   │   ├── history.tsx       # Historical prediction records
+│   │   │   └── profile.tsx       # User profile & account overview
+│   │   ├── prediction/           # Crop prediction flows
+│   │   │   └── result.tsx        # ML prediction results & recommendations
+│   │   ├── crops/                # Crop Library catalog
+│   │   │   ├── index.tsx         # Crop list with search & category filter
+│   │   │   └── [id].tsx          # Dynamic crop detail view
+│   │   └── settings/             # App settings
+│   │       └── index.tsx         # Farm preferences & notifications
+│   │
+│   ├── components/               # Reusable UI component library
+│   │   ├── Button.tsx            # Multi-variant action button
+│   │   ├── Input.tsx             # Form text input with label & error
+│   │   ├── Header.tsx            # Screen navigation header with back button
+│   │   ├── Loading.tsx           # Centered loading spinner with message
+│   │   ├── ErrorMessage.tsx      # Error alert banner with retry action
+│   │   ├── CropCard.tsx          # Botanical info preview card
+│   │   ├── PredictionCard.tsx    # History prediction summary card
+│   │   ├── WeatherCard.tsx       # Real-time climate snapshot card
+│   │   ├── SoilInput.tsx         # Soil nutrient numeric input with units
+│   │   └── index.ts              # Barrel export
+│   │
+│   ├── services/                 # Backend and ML API services
+│   │   ├── api.ts                # Central API client helper with auth headers
+│   │   ├── authService.ts        # Login, register, logout placeholders
+│   │   ├── predictionService.ts  # TensorFlow / ML backend predictor
+│   │   ├── cropService.ts        # Crop catalog search and details
+│   │   ├── weatherService.ts     # Live weather and forecast integration
+│   │   └── index.ts              # Barrel export
+│   │
+│   ├── store/                    # Global state management
+│   │   ├── authStore.ts          # Authentication state & active user
+│   │   ├── predictionStore.ts    # Active prediction inputs & result cache
+│   │   └── index.ts              # Barrel export
+│   │
+│   ├── types/                    # TypeScript interfaces and contracts
+│   │   ├── auth.ts               # User, AuthState, AuthResponse interfaces
+│   │   ├── prediction.ts         # SoilData, PredictionResult interfaces
+│   │   ├── crop.ts               # Crop, SoilRequirements, Climate interfaces
+│   │   ├── weather.ts            # WeatherData, WeatherForecast interfaces
+│   │   └── index.ts              # Barrel export
+│   │
+│   ├── constants/                # Constants and design system tokens
+│   │   ├── colors.ts             # Theme color palette (Green, Soil, Amber)
+│   │   ├── config.ts             # App metadata, default limits, center coords
+│   │   ├── api.ts                # API base URLs and endpoint map
+│   │   └── index.ts              # Barrel export
+│   │
+│   ├── utils/                    # Shared utility functions
+│   │   ├── validation.ts         # Email, password, and soil range validators
+│   │   ├── formatters.ts         # Date, temperature, confidence formatters
+│   │   ├── storage.ts            # Local storage helper wrapper
+│   │   └── index.ts              # Barrel export
+│   │
+│   ├── app.json                  # Expo application manifest
+│   ├── package.json              # Dependencies and scripts
+│   ├── tsconfig.json             # TypeScript compiler configuration
+│   └── .gitignore                # Frontend-specific ignores
 │
-├── components/                   # Reusable UI component library
-│   ├── Button.tsx                # Multi-variant action button
-│   ├── Input.tsx                 # Form text input with label & error
-│   ├── Header.tsx                # Screen navigation header with back button
-│   ├── Loading.tsx               # Centered loading spinner with message
-│   ├── ErrorMessage.tsx          # Error alert banner with retry action
-│   ├── CropCard.tsx              # Botanical info preview card
-│   ├── PredictionCard.tsx        # History prediction summary card
-│   ├── WeatherCard.tsx           # Real-time climate snapshot card
-│   ├── SoilInput.tsx             # Soil nutrient numeric input with units
-│   └── index.ts                  # Barrel export
-│
-├── services/                     # Backend and ML API services
-│   ├── api.ts                    # Central API client helper with auth headers
-│   ├── authService.ts            # Login, register, logout placeholders
-│   ├── predictionService.ts      # TensorFlow / ML backend predictor
-│   ├── cropService.ts            # Crop catalog search and details
-│   ├── weatherService.ts         # Live weather and forecast integration
-│   └── index.ts                  # Barrel export
-│
-├── store/                        # Global state management
-│   ├── authStore.ts              # Authentication state & active user
-│   ├── predictionStore.ts        # Active prediction inputs & result cache
-│   └── index.ts                  # Barrel export
-│
-├── types/                        # TypeScript interfaces and contracts
-│   ├── auth.ts                   # User, AuthState, AuthResponse interfaces
-│   ├── prediction.ts             # SoilData, PredictionResult interfaces
-│   ├── crop.ts                   # Crop, SoilRequirements, Climate interfaces
-│   ├── weather.ts                # WeatherData, WeatherForecast interfaces
-│   └── index.ts                  # Barrel export
-│
-├── constants/                    # Constants and design system tokens
-│   ├── colors.ts                 # Theme color palette (Green, Soil, Amber)
-│   ├── config.ts                 # App metadata, default limits, center coords
-│   ├── api.ts                    # API base URLs and endpoint map
-│   └── index.ts                  # Barrel export
-│
-├── utils/                        # Shared utility functions
-│   ├── validation.ts             # Email, password, and soil range validators
-│   ├── formatters.ts             # Date, temperature, confidence formatters
-│   ├── storage.ts                # Local storage helper wrapper
-│   └── index.ts                  # Barrel export
-│
-├── app.json                      # Expo application manifest
-├── package.json                  # Dependencies and scripts
-└── tsconfig.json                 # TypeScript compiler configuration
+├── README.md                     # Root repository README
+└── tutorial.md                   # Full developer guide & tutorial
 ```
 
 ---
