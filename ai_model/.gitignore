@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model artifacts
+*.joblib
+
+# Datasets
+*.csv
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Generated plots
+*.png
+*.jpg
+*.jpeg
