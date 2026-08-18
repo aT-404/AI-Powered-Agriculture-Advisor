@@ -31,11 +31,21 @@ export async function apiClient<T>(
   try {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     
-    // TODO: Connect real backend fetch request
-    console.log(`[API Request Placeholder] ${options.method || 'GET'} -> ${url}`);
+    const response = await fetch(url, {
+      ...rest,
+      headers: requestHeaders,
+    });
 
-    // Return empty placeholder response for skeleton
-    return { data: null, error: null };
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      const errorMessage = typeof responseData === 'object' && responseData !== null
+        ? (responseData.error || JSON.stringify(responseData))
+        : `Request failed with status ${response.status}`;
+      return { data: null, error: errorMessage };
+    }
+
+    return { data: responseData as T, error: null };
   } catch (err: any) {
     return { data: null, error: err?.message || 'Network request failed' };
   }

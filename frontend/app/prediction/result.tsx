@@ -1,16 +1,40 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { AnimatedCard } from '@/components/AnimatedCard';
 import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
+import { PredictionResult } from '@/types/prediction';
 
 export default function PredictionResultScreen() {
   const router = useRouter();
   const { activeColors } = useTheme();
+  const { data: dataParam } = useLocalSearchParams<{ data?: string }>();
+
+  let prediction: PredictionResult | null = null;
+  if (dataParam) {
+    try {
+      prediction = JSON.parse(dataParam);
+    } catch (e) {
+      console.error('[ResultScreen] Failed to parse prediction param:', e);
+    }
+  }
+
+  const primaryCropName = prediction?.primaryRecommendation?.cropName || 'Rice';
+  const confidenceScore = prediction?.primaryRecommendation?.confidence !== undefined
+    ? Math.round(prediction.primaryRecommendation.confidence * 100)
+    : 90;
+  const descriptionText = prediction?.primaryRecommendation?.description ||
+    'Optimal soil nitrogen and moisture levels detected for high-yield cultivation.';
+  const suitabilityReason = prediction?.primaryRecommendation?.suitabilityReason ||
+    'Optimal soil nutrients and climate parameters align with crop growth requirements.';
+
+  const altCrops = (prediction?.recommendedCrops || []).filter(
+    (c) => c.cropName.toLowerCase() !== primaryCropName.toLowerCase()
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: activeColors.background }]} edges={['bottom']}>
@@ -31,37 +55,37 @@ export default function PredictionResultScreen() {
               <Ionicons name="checkmark-circle" size={56} color={colors.primary.DEFAULT} />
             </View>
             
-            <Text style={[styles.cropTitle, { color: activeColors.textPrimary }]}>Rice (Paddy)</Text>
+            <Text style={[styles.cropTitle, { color: activeColors.textPrimary }]}>{primaryCropName}</Text>
 
             <View style={[styles.confidenceBadge, { backgroundColor: colors.primary.subtle }]}>
               <Ionicons name="sparkles" size={14} color={colors.primary.DEFAULT} />
-              <Text style={[styles.confidenceText, { color: colors.primary.DEFAULT }]}>94% Suitability Score</Text>
+              <Text style={[styles.confidenceText, { color: colors.primary.DEFAULT }]}>{confidenceScore}% Suitability Score</Text>
             </View>
 
             <Text style={[styles.description, { color: activeColors.textSecondary }]}>
-              Your soil parameters (High Nitrogen N=90, pH=6.5) combined with local rainfall and temperature metrics present optimal conditions for high-yield Rice cultivation.
+              {descriptionText}
             </Text>
           </View>
         </AnimatedCard>
 
         {/* Breakdown 2x2 Grid */}
         <AnimatedCard delay={180}>
-          <Text style={[styles.sectionHeadingLabel, { color: activeColors.textSecondary }]}>COMPATIBILITY BREAKDOWN</Text>
+          <Text style={[styles.sectionHeadingLabel, { color: activeColors.textSecondary }]}>INPUT PARAMETERS SUMMARY</Text>
           <View style={styles.gridRow}>
             <View style={[styles.miniCard, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
               <View style={[styles.miniIconWrap, { backgroundColor: colors.primary.subtle }]}>
                 <Ionicons name="flask" size={18} color={colors.primary.DEFAULT} />
               </View>
-              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Soil Compatibility</Text>
-              <Text style={[styles.miniValue, { color: colors.primary.DEFAULT }]}>96% Excellent</Text>
+              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Nitrogen (N)</Text>
+              <Text style={[styles.miniValue, { color: colors.primary.DEFAULT }]}>{prediction?.input?.nitrogen ?? 90} kg/ha</Text>
             </View>
 
             <View style={[styles.miniCard, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
               <View style={[styles.miniIconWrap, { backgroundColor: '#E3F2FD' }]}>
-                <Ionicons name="partly-sunny" size={18} color="#0288D1" />
+                <Ionicons name="speedometer" size={18} color="#0288D1" />
               </View>
-              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Climate Match</Text>
-              <Text style={[styles.miniValue, { color: '#0288D1' }]}>92% Optimal</Text>
+              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Soil pH</Text>
+              <Text style={[styles.miniValue, { color: '#0288D1' }]}>{prediction?.input?.ph ?? 6.5}</Text>
             </View>
           </View>
 
@@ -70,16 +94,16 @@ export default function PredictionResultScreen() {
               <View style={[styles.miniIconWrap, { backgroundColor: '#E1F5FE' }]}>
                 <Ionicons name="water" size={18} color="#0288D1" />
               </View>
-              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Water Need</Text>
-              <Text style={[styles.miniValue, { color: activeColors.textPrimary }]}>200 mm/month</Text>
+              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Rainfall</Text>
+              <Text style={[styles.miniValue, { color: activeColors.textPrimary }]}>{prediction?.input?.rainfall ?? 202} mm</Text>
             </View>
 
             <View style={[styles.miniCard, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
               <View style={[styles.miniIconWrap, { backgroundColor: colors.accent.light }]}>
-                <Ionicons name="calendar" size={18} color={colors.accent.dark} />
+                <Ionicons name="thermometer" size={18} color={colors.accent.dark} />
               </View>
-              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Growing Season</Text>
-              <Text style={[styles.miniValue, { color: activeColors.textPrimary }]}>Kharif (120 days)</Text>
+              <Text style={[styles.miniLabel, { color: activeColors.textSecondary }]}>Temperature</Text>
+              <Text style={[styles.miniValue, { color: activeColors.textPrimary }]}>{prediction?.input?.temperature ?? 25.5} °C</Text>
             </View>
           </View>
         </AnimatedCard>
@@ -94,61 +118,44 @@ export default function PredictionResultScreen() {
               <Text style={[styles.cardHeading, { color: activeColors.textPrimary }]}>Why this crop?</Text>
             </View>
             <Text style={[styles.whyText, { color: activeColors.textSecondary }]}>
-              1. Your Nitrogen levels (90 mg/kg) support heavy panicle development.{'\n'}
-              2. Your Soil pH of 6.5 allows maximum nutrient bioavailability.{'\n'}
-              3. Temperature of 25.5°C ensures rapid seed germination without heat stress.
+              {suitabilityReason}
             </Text>
           </View>
         </AnimatedCard>
 
         {/* Alternative Crop Matches */}
-        <AnimatedCard delay={300}>
-          <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
-            <Text style={[styles.cardHeading, { color: activeColors.textPrimary, marginBottom: 12 }]}>
-              Alternative Crop Matches
-            </Text>
-            
-            <TouchableOpacity
-              style={[styles.altItem, { borderBottomColor: activeColors.border }]}
-              onPress={() => router.push('/crops/maize-03' as any)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.altLeft}>
-                <Ionicons name="leaf-outline" size={16} color={colors.primary.DEFAULT} style={{ marginRight: 8 }} />
-                <Text style={[styles.altName, { color: activeColors.textPrimary }]}>2. Maize (Corn)</Text>
-              </View>
-              <View style={[styles.altBadge, { backgroundColor: colors.primary.subtle }]}>
-                <Text style={[styles.altScore, { color: colors.primary.DEFAULT }]}>86% Match</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.altItem}
-              onPress={() => router.push('/crops/cotton-04' as any)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.altLeft}>
-                <Ionicons name="leaf-outline" size={16} color={colors.primary.DEFAULT} style={{ marginRight: 8 }} />
-                <Text style={[styles.altName, { color: activeColors.textPrimary }]}>3. Cotton</Text>
-              </View>
-              <View style={[styles.altBadge, { backgroundColor: colors.primary.subtle }]}>
-                <Text style={[styles.altScore, { color: colors.primary.DEFAULT }]}>78% Match</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </AnimatedCard>
+        {altCrops.length > 0 ? (
+          <AnimatedCard delay={300}>
+            <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
+              <Text style={[styles.cardHeading, { color: activeColors.textPrimary, marginBottom: 12 }]}>
+                Alternative Crop Matches
+              </Text>
+              
+              {altCrops.map((item, index) => (
+                <View
+                  key={item.cropId || index}
+                  style={[styles.altItem, index < altCrops.length - 1 ? { borderBottomColor: activeColors.border } : { borderBottomWidth: 0 }]}
+                >
+                  <View style={styles.altLeft}>
+                    <Ionicons name="leaf-outline" size={16} color={colors.primary.DEFAULT} style={{ marginRight: 8 }} />
+                    <Text style={[styles.altName, { color: activeColors.textPrimary }]}>{index + 2}. {item.cropName}</Text>
+                  </View>
+                  <View style={[styles.altBadge, { backgroundColor: colors.primary.subtle }]}>
+                    <Text style={[styles.altScore, { color: colors.primary.DEFAULT }]}>
+                      {Math.round(item.confidence * 100)}% Match
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </AnimatedCard>
+        ) : null}
 
         {/* Action Buttons */}
         <AnimatedCard delay={360} style={{ marginBottom: 28 }}>
           <Button
-            title="Save & View Crop Details"
-            onPress={() => router.push('/crops/rice-01' as any)}
-            style={styles.button}
-          />
-          <Button
             title="New Prediction"
             onPress={() => router.replace('/(tabs)/predict' as any)}
-            variant="outline"
             style={styles.button}
           />
         </AnimatedCard>

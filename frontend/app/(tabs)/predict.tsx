@@ -10,6 +10,9 @@ import { colors } from '@/constants/colors';
 import { APP_CONFIG } from '@/constants/config';
 import { useTheme } from '@/store/ThemeContext';
 
+import { predictCrop } from '@/services/predictionService';
+import { ErrorMessage } from '@/components/ErrorMessage';
+
 export default function PredictScreen() {
   const router = useRouter();
   const { activeColors } = useTheme();
@@ -23,8 +26,36 @@ export default function PredictScreen() {
   const [humidity, setHumidity] = useState('80');
   const [rainfall, setRainfall] = useState('202');
 
-  const handlePredict = () => {
-    router.push('/prediction/result');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePredict = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await predictCrop({
+        soil: {
+          nitrogen: parseFloat(nitrogen) || 0,
+          phosphorus: parseFloat(phosphorus) || 0,
+          potassium: parseFloat(potassium) || 0,
+          ph: parseFloat(ph) || 6.5,
+          temperature: parseFloat(temperature) || 25.5,
+          humidity: parseFloat(humidity) || 80.0,
+          rainfall: parseFloat(rainfall) || 202.0,
+        },
+      });
+
+      router.push({
+        pathname: '/prediction/result',
+        params: { data: JSON.stringify(result) },
+      } as any);
+    } catch (err: any) {
+      console.error('[PredictScreen] Prediction failed:', err);
+      setError(err?.message || 'Failed to connect to ML prediction API.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -154,11 +185,19 @@ export default function PredictScreen() {
           </View>
         </AnimatedCard>
 
+        {error ? (
+          <AnimatedCard delay={280} style={{ marginBottom: 16 }}>
+            <ErrorMessage message={error} onRetry={handlePredict} />
+          </AnimatedCard>
+        ) : null}
+
         {/* Action button */}
         <AnimatedCard delay={300} style={{ marginBottom: 28 }}>
           <Button
-            title="Predict Best Crop"
+            title={loading ? 'Predicting...' : 'Predict Best Crop'}
             onPress={handlePredict}
+            loading={loading}
+            disabled={loading}
             style={styles.submitButton}
           />
         </AnimatedCard>

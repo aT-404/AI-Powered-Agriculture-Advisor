@@ -3,7 +3,7 @@
  * Note: Update BASE_URL and endpoints once the backend server is deployed.
  */
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.cropwise.ai/v1';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 export const API_ENDPOINTS = {
   // Authentication
@@ -17,7 +17,7 @@ export const API_ENDPOINTS = {
   },
   // Crop Prediction (ML Backend)
   PREDICTION: {
-    PREDICT: '/predict/crop',
+    PREDICT: '/predict/crop/',
     HISTORY: '/predict/history',
     DETAILS: (id: string) => `/predict/history/${id}`,
   },

@@ -45,3 +45,23 @@ Thumbs.db
 /android
 frontend/ios
 frontend/android
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Django & SQLite
+*.sqlite3
+db.sqlite3
+backend/db.sqlite3
+*.log
+
