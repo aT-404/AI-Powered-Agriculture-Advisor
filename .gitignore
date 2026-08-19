@@ -64,4 +64,4 @@ venv.bak/
 db.sqlite3
 backend/db.sqlite3
 *.log
-
+ai_model/yield_prediction/models/*.pkl

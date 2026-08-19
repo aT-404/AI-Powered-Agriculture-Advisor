@@ -1,0 +1,21 @@
+{
+    "N": 80,
+    "P": 40,
+    "K": 45,
+    "Soil_pH": 6.5,
+    "Soil_Moisture": 35,
+    "Soil_Type": "Loamy",
+    "Organic_Carbon": 1.8,
+    "Temperature": 27,
+    "Humidity": 75,
+    "Rainfall": 900,
+    "Sunlight_Hours": 8,
+    "Wind_Speed": 12,
+    "Region": "South",
+    "Altitude": 100,
+    "Season": "Kharif",
+    "Crop_Type": "Rice",
+    "Irrigation_Type": "Drip",
+    "Fertilizer_Used": "Yes",
+    "Pesticide_Used": "No"
+}
