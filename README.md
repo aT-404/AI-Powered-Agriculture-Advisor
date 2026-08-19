@@ -1,50 +1,195 @@
-# Welcome to your Expo app 👋
+# AI-Powered Agriculture Advisor 🌾🌦️📈
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An intelligent decision-support platform designed for farmers, combining AI-driven crop recommendations with real-time weather forecasting, live agricultural mandi prices, price trend analytics, and automated target price alerts.
 
-## Get started
+---
 
-1. Install dependencies
+## 🌟 Key Features
 
-   ```bash
-   npm install
-   ```
+### 1. 🌾 Crop Recommendation ML
+- Recommends optimal crops based on soil nutrients (Nitrogen, Phosphorus, Potassium, pH) and climate conditions (Temperature, Humidity, Rainfall).
+- Returns primary recommendation with suitability score, detailed agronomic reasoning, and ranked alternative crops.
 
-2. Start the app
+### 2. 🌦️ Weather Integration (Open-Meteo)
+- **Current Conditions**: Temperature, Feels-like (apparent temperature), Relative Humidity, Wind Speed, Weather Condition (with icons), and Precipitation / Rain (mm).
+- **7-Day Agricultural Forecast**: Daily outlook including Min/Max temperatures, Rain Probability (%), Precipitation Sum (mm), Wind Speed, and weather conditions.
+- **Location Geocoding**: Interactive search converting city/town names to precise coordinates via Open-Meteo Geocoding API with fallback to popular agricultural hubs.
 
-   ```bash
-   npx expo start
-   ```
+### 3. 📈 Current Mandi Prices (Agmarknet / Data.gov.in)
+- Live and authentic Indian agricultural market rates across major states, districts, and APMC mandis (e.g. Muvattupuzha, Kothamangalam, Lasalgaon, Pune, Kolar, Khanna, etc.).
+- Displays **Modal Price** (standard clearing rate), **Minimum Price**, **Maximum Price**, **Commodity Variety**, **Arrival Date**, and **Last Updated Time**.
+- Cascading selectors for **State → District → Mandi → Commodity**.
 
-In the output, you'll find options to open the app in a
+### 4. 📊 Price Trend Analysis & Charts
+- Visualizes **7-day** and **30-day** historical modal price trajectories for selected commodities and mandis.
+- Highlights:
+  - **Current Price** vs. **Starting Period Price**
+  - **Net Price Difference** (₹/Quintal)
+  - **Percentage Change** (+X.X% / -X.X%)
+  - **Market Sentiment / Direction** (📈 Bullish / Rising, 📉 Softening / Falling, ⚖️ Stable)
+- Responsive interactive visualizer with price points, Y-axis benchmarks, and date intervals.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 5. 🔔 Smart Price Alerts System
+- Allows farmers to define target market prices for specific crops at chosen mandis.
+- Evaluates conditions:
+  - `≥ Reaches or Exceeds` (e.g. Tomato at Muvattupuzha ≥ ₹3,000/quintal)
+  - `≤ Drops Below`
+- Triggers instant in-app alerts (e.g. *"🔔 Tomato price has reached ₹3000/quintal at Muvattupuzha."*).
+- Supports toggling alerts on/off and deleting alerts.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🏗️ System Architecture
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+AI-Powered-Agriculture-Advisor/
+├── backend/
+│   ├── config/              # Django settings, URLs, WSGI/ASGI
+│   ├── prediction/          # Django app: Models, Serializers, Views, URLs
+│   │   ├── models.py        # PriceAlert database model
+│   │   ├── serializers.py   # Serializers for ML, Weather, Market, Alerts
+│   │   ├── views.py         # DRF API views
+│   │   └── urls.py          # /api/... routes
+│   ├── services/            # Clean external service layer
+│   │   ├── weather_service.py # Open-Meteo Weather & Geocoding integration
+│   │   ├── market_service.py  # Agmarknet / Data.gov.in Mandi price provider
+│   │   └── alert_service.py   # Price alert evaluation & notifications
+│   ├── manage.py
+│   └── requirements.txt
+├── frontend/
+│   ├── app/                 # Expo Router v6 file-based navigation
+│   │   ├── (tabs)/
+│   │   │   ├── home.tsx     # Unified Agriculture Intelligence Dashboard
+│   │   │   └── predict.tsx  # Crop Prediction Input Form
+│   │   └── prediction/
+│   │       └── result.tsx   # Recommendation Result + Linked Market Intelligence
+│   ├── components/          # Reusable UI components
+│   │   ├── WeatherCard.tsx     # Open-Meteo Current & 7-Day Forecast card
+│   │   ├── MarketPriceCard.tsx # Agmarknet Mandi Price selector & display
+│   │   ├── PriceTrendCard.tsx  # 7-day / 30-day Price Trend Chart
+│   │   └── PriceAlertCard.tsx  # Farmer Price Alert manager & trigger banner
+│   ├── services/            # Frontend API client modules
+│   │   ├── weatherService.ts
+│   │   ├── marketService.ts
+│   │   ├── alertService.ts
+│   │   └── predictionService.ts
+│   └── types/               # TypeScript type definitions
+└── ai_model/                # Pre-trained ML models & inference engine
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 📡 API Endpoints
 
-To learn more about developing your project with Expo, look at the following resources:
+### 1. Weather API
+- `GET /api/weather/?location=Kothamangalam`
+  - Fetches Open-Meteo current conditions and 7-day forecast for the given location or `latitude` & `longitude`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 2. Market Intelligence APIs
+- `GET /api/market/filters/`
+  - Returns hierarchical list of available States, Districts, Markets, and Commodities.
+- `GET /api/market/prices/?commodity=Tomato&state=Kerala&district=Ernakulam&market=Muvattupuzha`
+  - Returns current mandi prices (min, modal, max, unit, date, last updated).
+- `GET /api/market/trends/?commodity=Tomato&market=Muvattupuzha&days=7`
+  - Returns historical daily price points, percentage change, and trend direction (`days=7` or `days=30`).
 
-## Join the community
+### 3. Price Alerts APIs
+- `GET /api/alerts/?user_identifier=default_farmer`
+  - Lists all configured price alerts for the user.
+- `POST /api/alerts/`
+  - Creates a new price alert and immediately evaluates it against current market prices.
+  - Body:
+    ```json
+    {
+      "commodity": "Tomato",
+      "market": "Muvattupuzha",
+      "target_price": 3000,
+      "condition": "GTE",
+      "state": "Kerala",
+      "district": "Ernakulam"
+    }
+    ```
+- `POST /api/alerts/<id>/toggle/`
+  - Toggles the active status of an alert.
+- `DELETE /api/alerts/<id>/`
+  - Deletes a price alert.
+- `POST /api/alerts/check/`
+  - Batch evaluates all active alerts against the latest market prices.
 
-Join our community of developers creating universal apps.
+### 4. Crop Prediction ML API
+- `POST /api/predict/crop/`
+  - Body: `{"N": 90, "P": 42, "K": 43, "temperature": 25.5, "humidity": 80, "ph": 6.5, "rainfall": 202}`
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## ⚙️ Environment Variables
+
+Copy `.env.example` to `.env`:
+
+```bash
+# Backend Django Settings
+SECRET_KEY=django-insecure-cropwise-agriculture-advisor-key-for-dev
+DEBUG=True
+ALLOWED_HOSTS=*
+
+# Optional: Official Indian Government Agmarknet data via Data.gov.in
+# (A rich baseline verified dataset is included for offline/fallback operation)
+DATA_GOV_IN_API_KEY=
+
+# Frontend Configuration
+EXPO_PUBLIC_API_URL=http://127.0.0.1:8000/api
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Backend Setup
+
+```bash
+cd backend
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# Start Django development server
+python manage.py runserver 127.0.0.1:8000
+```
+
+### 2. Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start Expo development server
+npx expo start
+```
+
+---
+
+## 🧪 Verification & Testing
+
+Verify backend APIs:
+```bash
+# Check Health
+curl http://127.0.0.1:8000/api/health/
+
+# Check Weather (Open-Meteo)
+curl "http://127.0.0.1:8000/api/weather/?location=Kothamangalam"
+
+# Check Mandi Prices
+curl "http://127.0.0.1:8000/api/market/prices/?commodity=Tomato&market=Muvattupuzha"
+
+# Check Price Trends
+curl "http://127.0.0.1:8000/api/market/trends/?commodity=Tomato&days=7"
+
+# Check Price Alerts
+curl http://127.0.0.1:8000/api/alerts/
+```

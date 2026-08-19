@@ -20,6 +20,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Button } from '@/components/Button';
 import { WeatherCard } from '@/components/WeatherCard';
+import { MarketPriceCard } from '@/components/MarketPriceCard';
+import { PriceTrendCard } from '@/components/PriceTrendCard';
+import { PriceAlertCard } from '@/components/PriceAlertCard';
 import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
 
@@ -456,12 +459,22 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({ visible, onClose, slideAn
   );
 };
 
-// ─── Home Screen ─────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router    = useRouter();
   const { activeColors } = useTheme();
   const [scanModalVisible, setScanModalVisible] = useState(false);
   const [drawerVisible,    setDrawerVisible]    = useState(false);
+
+  // Market & Price Alert state
+  const [selectedCrop, setSelectedCrop] = useState('Tomato');
+  const [selectedMarket, setSelectedMarket] = useState('Muvattupuzha');
+  const [selectedState, setSelectedState] = useState('Kerala');
+  const [selectedDistrict, setSelectedDistrict] = useState('Ernakulam');
+  const [preFillAlert, setPreFillAlert] = useState<{
+    commodity?: string;
+    market?: string;
+    targetPrice?: number;
+  } | undefined>(undefined);
 
   // ── Drawer animation values ──────────────────────────────────────────────
   const drawerSlide   = useRef(new Animated.Value(SCREEN_WIDTH)).current;
@@ -630,8 +643,45 @@ export default function HomeScreen() {
 
         {/* ── Weather Card ─────────────────────────────────────────────── */}
         <AnimatedCard delay={280} style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: activeColors.textSecondary }]}>Farm Conditions</Text>
-          <WeatherCard />
+          <Text style={[styles.sectionLabel, { color: activeColors.textSecondary }]}>Farm Weather Outlook</Text>
+          <WeatherCard initialLocation="Kothamangalam" />
+        </AnimatedCard>
+
+        {/* ── Mandi Market Price Card ───────────────────────────────────── */}
+        <AnimatedCard delay={320} style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: activeColors.textSecondary }]}>Mandi Market Rates</Text>
+          <MarketPriceCard
+            selectedCrop={selectedCrop}
+            onSelectCommodity={(cmd) => setSelectedCrop(cmd)}
+            onSetAlert={(params) => {
+              setSelectedCrop(params.commodity);
+              setSelectedMarket(params.market);
+              setSelectedState(params.state);
+              setSelectedDistrict(params.district);
+              setPreFillAlert({
+                commodity: params.commodity,
+                market: params.market,
+                targetPrice: params.currentPrice,
+              });
+            }}
+          />
+        </AnimatedCard>
+
+        {/* ── Price Trend Card ──────────────────────────────────────────── */}
+        <AnimatedCard delay={360} style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: activeColors.textSecondary }]}>Market Price Trends</Text>
+          <PriceTrendCard
+            commodity={selectedCrop}
+            market={selectedMarket}
+            state={selectedState}
+            district={selectedDistrict}
+          />
+        </AnimatedCard>
+
+        {/* ── Price Alerts Card ─────────────────────────────────────────── */}
+        <AnimatedCard delay={400} style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: activeColors.textSecondary }]}>Price Alerts</Text>
+          <PriceAlertCard initialPreFill={preFillAlert} />
         </AnimatedCard>
 
         {/* ── AI Advisor Card ───────────────────────────────────────────── */}

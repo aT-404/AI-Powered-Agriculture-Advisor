@@ -5,6 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { AnimatedCard } from '@/components/AnimatedCard';
+import { MarketPriceCard } from '@/components/MarketPriceCard';
+import { PriceTrendCard } from '@/components/PriceTrendCard';
+import { PriceAlertCard } from '@/components/PriceAlertCard';
 import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
 import { PredictionResult } from '@/types/prediction';
@@ -22,6 +25,12 @@ export default function PredictionResultScreen() {
       console.error('[ResultScreen] Failed to parse prediction param:', e);
     }
   }
+
+  const [preFillAlert, setPreFillAlert] = React.useState<{
+    commodity?: string;
+    market?: string;
+    targetPrice?: number;
+  } | undefined>(undefined);
 
   const primaryCropName = prediction?.primaryRecommendation?.cropName || 'Rice';
   const confidenceScore = prediction?.primaryRecommendation?.confidence !== undefined
@@ -150,6 +159,41 @@ export default function PredictionResultScreen() {
             </View>
           </AnimatedCard>
         ) : null}
+
+        {/* ── Market Intelligence for Recommended Crop ─────────────────── */}
+        <AnimatedCard delay={340}>
+          <Text style={[styles.sectionHeadingLabel, { color: activeColors.textSecondary }]}>
+            MARKET INTELLIGENCE FOR {primaryCropName.toUpperCase()}
+          </Text>
+          <MarketPriceCard
+            selectedCrop={primaryCropName}
+            onSetAlert={(params) =>
+              setPreFillAlert({
+                commodity: params.commodity,
+                market: params.market,
+                targetPrice: params.currentPrice,
+              })
+            }
+          />
+        </AnimatedCard>
+
+        {/* ── Price Trend for Recommended Crop ─────────────────────────── */}
+        <AnimatedCard delay={380}>
+          <PriceTrendCard commodity={primaryCropName} />
+        </AnimatedCard>
+
+        {/* ── Price Alerts for Recommended Crop ────────────────────────── */}
+        <AnimatedCard delay={420}>
+          <PriceAlertCard
+            initialPreFill={
+              preFillAlert || {
+                commodity: primaryCropName,
+                market: 'Muvattupuzha',
+                targetPrice: 3000,
+              }
+            }
+          />
+        </AnimatedCard>
 
         {/* Action Buttons */}
         <AnimatedCard delay={360} style={{ marginBottom: 28 }}>

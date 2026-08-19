@@ -1,6 +1,5 @@
 /**
  * API Endpoints & Configuration
- * Note: Update BASE_URL and endpoints once the backend server is deployed.
  */
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -28,10 +27,24 @@ export const API_ENDPOINTS = {
     CATEGORIES: '/crops/categories',
     SEARCH: '/crops/search',
   },
-  // Weather Service
+  // Weather Service (Open-Meteo via Django backend)
   WEATHER: {
-    CURRENT: '/weather/current',
-    FORECAST: '/weather/forecast',
+    GET: '/weather/',
+    CURRENT: '/weather/',
+    FORECAST: '/weather/',
+  },
+  // Market Intelligence (Agmarknet Mandi Prices & Trends)
+  MARKET: {
+    FILTERS: '/market/filters/',
+    PRICES: '/market/prices/',
+    TRENDS: '/market/trends/',
+  },
+  // Price Alert System
+  ALERTS: {
+    LIST_CREATE: '/alerts/',
+    DETAIL: (id: number | string) => `/alerts/${id}/`,
+    TOGGLE: (id: number | string) => `/alerts/${id}/toggle/`,
+    CHECK: '/alerts/check/',
   },
   // User Profile & Settings
   USER: {
