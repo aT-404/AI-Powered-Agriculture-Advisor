@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { MarketTrendData, MarketTrendPoint } from '@/types/market';
 import { fetchPriceTrends } from '@/services/marketService';
+import SkeletonLoader from './SkeletonLoader';
 import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
 
@@ -162,11 +163,21 @@ export const PriceTrendCard: React.FC<PriceTrendCardProps> = ({
 
       {/* ── Content: Loading / Error / Chart ──────────────────────────────── */}
       {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
-          <Text style={[styles.loadingText, { color: activeColors.textSecondary }]}>
-            Analyzing historical price movements...
-          </Text>
+        <View style={[styles.loadingBox, { paddingVertical: 10 }]}>
+          <View style={{ gap: 8, marginBottom: 20 }}>
+            <SkeletonLoader width={80} height={20} borderRadius={4} />
+            <SkeletonLoader width={140} height={32} borderRadius={6} />
+            <SkeletonLoader width={100} height={16} borderRadius={4} />
+          </View>
+          <View style={{ height: 160, justifyContent: 'flex-end', flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+            <SkeletonLoader width="10%" height="40%" borderRadius={4} />
+            <SkeletonLoader width="10%" height="50%" borderRadius={4} />
+            <SkeletonLoader width="10%" height="45%" borderRadius={4} />
+            <SkeletonLoader width="10%" height="70%" borderRadius={4} />
+            <SkeletonLoader width="10%" height="60%" borderRadius={4} />
+            <SkeletonLoader width="10%" height="80%" borderRadius={4} />
+            <SkeletonLoader width="10%" height="90%" borderRadius={4} />
+          </View>
         </View>
       ) : error ? (
         <View style={styles.errorBox}>

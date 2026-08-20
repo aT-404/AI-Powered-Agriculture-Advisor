@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { WeatherResponse, DailyForecast } from '@/types/weather';
 import { fetchWeather } from '@/services/weatherService';
+import SkeletonLoader from './SkeletonLoader';
 import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
 import { formatTemperature } from '@/utils/formatters';
@@ -150,11 +150,19 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
       {/* ── Loading State ─────────────────────────────────────────────────── */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
-          <Text style={[styles.loadingText, { color: activeColors.textSecondary }]}>
-            Loading Open-Meteo forecast...
-          </Text>
+        <View style={[styles.loadingContainer, { paddingVertical: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 16 }}>
+            <SkeletonLoader width={60} height={60} borderRadius={30} />
+            <View style={{ gap: 8 }}>
+              <SkeletonLoader width={120} height={28} borderRadius={6} />
+              <SkeletonLoader width={80} height={16} borderRadius={4} />
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+            <SkeletonLoader width="30%" height={60} borderRadius={12} />
+            <SkeletonLoader width="30%" height={60} borderRadius={12} />
+            <SkeletonLoader width="30%" height={60} borderRadius={12} />
+          </View>
         </View>
       ) : error ? (
         /* ── Error State ──────────────────────────────────────────────────── */

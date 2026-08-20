@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   // Crop Prediction (ML Backend)
   PREDICTION: {
     PREDICT: '/predict/crop/',
+    PREDICT_YIELD: '/predict/crop-yield/',
     HISTORY: '/predict/history',
     DETAILS: (id: string) => `/predict/history/${id}`,
   },

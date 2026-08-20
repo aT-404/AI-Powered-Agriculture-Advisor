@@ -22,6 +22,37 @@ export interface PredictionRequest {
   additionalNotes?: string;
 }
 
+export interface YieldPredictionRequest {
+  N: number;
+  P: number;
+  K: number;
+  Soil_pH: number;
+  Soil_Moisture: number;
+  Soil_Type: string;
+  Organic_Carbon: number;
+  Temperature: number;
+  Humidity: number;
+  Rainfall: number;
+  Sunlight_Hours: number;
+  Wind_Speed: number;
+  Region: string;
+  Altitude: number;
+  Season: string;
+  Crop_Type: string;
+  Irrigation_Type: string;
+  Fertilizer_Used: string;
+  Pesticide_Used: string;
+}
+
+export interface YieldPredictionResult {
+  id: string;
+  timestamp: string;
+  predicted_yield: number;
+  unit: string;
+  input: YieldPredictionRequest;
+  explanation?: { feature: string; contribution: number }[];
+}
+
 export interface RecommendedCrop {
   cropId: string;
   cropName: string;

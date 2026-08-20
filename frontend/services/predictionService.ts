@@ -3,7 +3,14 @@
  * Connects to Django REST backend ML model API (POST /api/predict/crop/)
  */
 
-import { PredictionRequest, PredictionResult, PredictionHistoryItem, RecommendedCrop } from '@/types/prediction';
+import { 
+  PredictionRequest, 
+  PredictionResult, 
+  PredictionHistoryItem, 
+  RecommendedCrop,
+  YieldPredictionRequest,
+  YieldPredictionResult
+} from '@/types/prediction';
 import { apiClient } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 
@@ -14,6 +21,12 @@ interface DjangoPredictionResponse {
     crop: string;
     confidence: number;
   }>;
+}
+
+interface DjangoYieldPredictionResponse {
+  success: boolean;
+  predicted_yield: number;
+  unit: string;
 }
 
 function capitalize(str: string): string {
@@ -71,6 +84,32 @@ export async function predictCrop(request: PredictionRequest): Promise<Predictio
     input: request.soil,
     primaryRecommendation,
     recommendedCrops,
+  };
+}
+
+export async function predictCropYield(request: YieldPredictionRequest): Promise<YieldPredictionResult> {
+  console.log('[predictionService] Sending yield request to Django API:', request);
+
+  const { data, error } = await apiClient<DjangoYieldPredictionResponse>(
+    API_ENDPOINTS.PREDICTION.PREDICT_YIELD,
+    {
+      method: 'POST',
+      body: JSON.stringify(request),
+      requiresAuth: false,
+    }
+  );
+
+  if (error || !data) {
+    console.error('[predictionService] API request failed:', error);
+    throw new Error(error || 'Failed to fetch crop yield prediction from backend API');
+  }
+
+  return {
+    id: `yield-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    predicted_yield: data.predicted_yield,
+    unit: data.unit,
+    input: request,
   };
 }
 

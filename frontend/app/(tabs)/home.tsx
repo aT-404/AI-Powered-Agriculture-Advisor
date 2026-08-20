@@ -259,20 +259,23 @@ interface QuickActionProps {
   bgColor: string;
   onPress: () => void;
 }
-const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, bgColor, onPress }) => (
-  <TouchableOpacity
-    style={styles.quickAction}
-    onPress={onPress}
-    activeOpacity={0.75}
-    accessibilityLabel={label}
-    accessibilityRole="button"
-  >
-    <View style={[styles.quickActionIcon, { backgroundColor: bgColor }]}>
-      <Ionicons name={icon} size={22} color={color} />
-    </View>
-    <Text style={styles.quickActionLabel}>{label}</Text>
-  </TouchableOpacity>
-);
+const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, bgColor, onPress }) => {
+  const { activeColors } = useTheme();
+  return (
+    <TouchableOpacity
+      style={styles.quickAction}
+      onPress={onPress}
+      activeOpacity={0.75}
+      accessibilityLabel={label}
+      accessibilityRole="button"
+    >
+      <View style={[styles.quickActionIcon, { backgroundColor: bgColor }]}>
+        <Ionicons name={icon} size={22} color={color} />
+      </View>
+      <Text style={[styles.quickActionLabel, { color: activeColors.textPrimary }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+};
 
 // ─── Profile Drawer ───────────────────────────────────────────────────────────
 interface DrawerMenuItem {
@@ -585,7 +588,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* ── Primary Soil Scan Card — fades in slightly later ─────────── */}
-        <AnimatedCard delay={120}>
+        <AnimatedCard delay={120} style={styles.section}>
           <View style={styles.soilCard}>
             <View style={styles.soilDecorCircle1} />
             <View style={styles.soilDecorCircle2} />
@@ -593,8 +596,8 @@ export default function HomeScreen() {
               <View style={styles.soilIconBadge}>
                 <Ionicons name="flask" size={26} color="#fff" />
               </View>
-              <Text style={styles.soilCardTitle}>Analyze Your Soil</Text>
-              <Text style={styles.soilCardDesc}>
+              <Text style={[styles.soilCardTitle, { color: activeColors.primaryCard.text }]}>Analyze Your Soil</Text>
+              <Text style={[styles.soilCardDesc, { color: activeColors.primaryCard.textMuted }]}>
                 Upload your soil test report and get AI-powered crop recommendations instantly.
               </Text>
               <TouchableOpacity
@@ -632,11 +635,19 @@ export default function HomeScreen() {
             />
             <View style={[styles.quickActionDivider, { backgroundColor: activeColors.border }]} />
             <QuickAction
-              icon="time-outline"
-              label="Soil History"
+              icon="stats-chart-outline"
+              label="Yield Predictor"
               color={colors.secondary.DEFAULT}
               bgColor={colors.secondary.subtle}
-              onPress={() => Alert.alert('Coming Soon', 'Soil history will be available in a future update.')}
+              onPress={() => router.push('/(tabs)/yield-predict' as any)}
+            />
+            <View style={[styles.quickActionDivider, { backgroundColor: activeColors.border }]} />
+            <QuickAction
+              icon="medkit-outline"
+              label="Crop Diagnosis"
+              color={colors.status.error}
+              bgColor="#FFEBEE"
+              onPress={() => router.push('/vision/diagnosis' as any)}
             />
           </View>
         </AnimatedCard>
@@ -774,7 +785,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     backgroundColor: colors.primary.DEFAULT,
-    marginBottom: 24,
     minHeight: 200,
     shadowColor: colors.primary.dark,
     shadowOpacity: 0.35,
@@ -800,8 +810,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
-  soilCardTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  soilCardDesc:  { fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 21, marginBottom: 20 },
+  soilCardTitle: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
+  soilCardDesc:  { fontSize: 14, lineHeight: 21, marginBottom: 20 },
   scanBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#fff', paddingVertical: 13, paddingHorizontal: 22,
@@ -811,7 +821,7 @@ const styles = StyleSheet.create({
   scanBtnText: { fontSize: 15, fontWeight: '700', color: colors.primary.DEFAULT },
 
   // Sections
-  section: { marginBottom: 20 },
+  section: { marginBottom: 24 },
   sectionLabel: {
     fontSize: 12, fontWeight: '700', letterSpacing: 0.8,
     textTransform: 'uppercase', marginBottom: 10, marginLeft: 2,

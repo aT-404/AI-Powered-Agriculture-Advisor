@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     HealthCheckView,
     CropPredictionView,
+    CropYieldPredictionView,
     WeatherView,
     MarketFiltersView,
     MarketPricesView,
@@ -10,12 +11,17 @@ from .views import (
     PriceAlertDetailView,
     PriceAlertToggleView,
     PriceAlertCheckView,
+    VisionDiagnosisView,
+    AssistantChatView,
 )
 
 urlpatterns = [
     # Health & Prediction
     path('health/', HealthCheckView.as_view(), name='health-check'),
     path('predict/crop/', CropPredictionView.as_view(), name='crop-predict'),
+    path('predict/crop-yield/', CropYieldPredictionView.as_view(), name='crop-yield-predict'),
+    path('vision/diagnose/', VisionDiagnosisView.as_view(), name='vision-diagnose'),
+    path('assistant/chat/', AssistantChatView.as_view(), name='assistant-chat'),
 
     # Weather (Open-Meteo)
     path('weather/', WeatherView.as_view(), name='weather'),

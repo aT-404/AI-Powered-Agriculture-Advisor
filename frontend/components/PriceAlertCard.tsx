@@ -215,7 +215,7 @@ export const PriceAlertCard: React.FC<PriceAlertCardProps> = ({
         <View style={styles.loadingBox}>
           <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
           <Text style={[styles.loadingText, { color: activeColors.textSecondary }]}>
-            Loading your configured price alerts...
+            Loading market alerts...
           </Text>
         </View>
       ) : error ? (
@@ -298,16 +298,16 @@ export const PriceAlertCard: React.FC<PriceAlertCardProps> = ({
         <View style={styles.emptyBox}>
           <Ionicons name="notifications-off-outline" size={28} color={activeColors.textSecondary} />
           <Text style={[styles.emptyTitle, { color: activeColors.textPrimary }]}>
-            No Price Alerts Configured
+            No active price alerts
           </Text>
           <Text style={[styles.emptyText, { color: activeColors.textSecondary }]}>
-            Set target prices for your crops to receive instant notifications when mandi rates peak.
+            Create an alert to get notified when your target market price is reached.
           </Text>
           <TouchableOpacity
             style={[styles.createFirstBtn, { backgroundColor: colors.primary.DEFAULT }]}
             onPress={() => setModalVisible(true)}
           >
-            <Text style={styles.createFirstBtnText}>+ Set Your First Price Alert</Text>
+            <Text style={styles.createFirstBtnText}>+ New Alert</Text>
           </TouchableOpacity>
         </View>
       )}

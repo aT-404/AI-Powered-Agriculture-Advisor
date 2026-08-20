@@ -15,10 +15,18 @@ from .serializers import (
     MarketTrendQuerySerializer,
     PriceAlertSerializer,
     PriceAlertCreateSerializer,
+    CropYieldPredictionSerializer,
 )
 from services.weather_service import get_weather_for_location
 from services.market_service import market_service
 from services.alert_service import alert_service
+from services.crop_yield_service import crop_yield_service
+from services.explainability_service import explainability_service
+from services.vision_diagnosis_service import vision_diagnosis_service
+from services.assistant_service import assistant_service
+import json
+import tempfile
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +139,91 @@ class CropPredictionView(APIView):
                 {"error": "An error occurred during crop prediction inference."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class CropYieldPredictionView(APIView):
+    """
+    Crop yield prediction endpoint.
+    Accepts 19 soil, climate, and farm management features and passes them 
+    to the yield prediction ML model.
+    """
+    def post(self, request):
+        serializer = CropYieldPredictionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            yield_result = crop_yield_service.predict(serializer.validated_data)
+            explanation = explainability_service.explain_yield_prediction(serializer.validated_data)
+            
+            return Response({
+                "success": True,
+                "predicted_yield": round(yield_result, 2),
+                "unit": "tons/hectare",
+                "explanation": explanation
+            }, status=status.HTTP_200_OK)
+        except Exception as exc:
+            logger.exception("Error occurred during crop yield prediction inference: %s", exc)
+            return Response(
+                {"error": "An error occurred during crop yield prediction inference."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class VisionDiagnosisView(APIView):
+    """
+    Accepts an uploaded image of a crop and uses Gemini Vision to diagnose diseases.
+    """
+    def post(self, request):
+        if 'image' not in request.FILES:
+            return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        image_file = request.FILES['image']
+        
+        # Save temporarily
+        temp_dir = tempfile.gettempdir()
+        temp_path = os.path.join(temp_dir, image_file.name)
+        
+        try:
+            with open(temp_path, 'wb+') as destination:
+                for chunk in image_file.chunks():
+                    destination.write(chunk)
+                    
+            # Call vision service
+            diagnosis_json = vision_diagnosis_service.diagnose_image(temp_path)
+            # Parse the returned JSON string back into a dict for DRF Response
+            return Response(json.loads(diagnosis_json), status=status.HTTP_200_OK)
+            
+        except ValueError as ve:
+            return Response({"error": str(ve)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as exc:
+            logger.exception("Error during vision diagnosis: %s", exc)
+            return Response({"error": "Failed to diagnose image."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            # Clean up local temp file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+
+class AssistantChatView(APIView):
+    """
+    Handles conversational interactions with the Gemini AI agricultural assistant.
+    """
+    def post(self, request):
+        message = request.data.get('message')
+        history = request.data.get('history', [])
+        
+        if not message:
+            return Response({"error": "Message is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            reply = assistant_service.get_response(message, history)
+            return Response({"reply": reply}, status=status.HTTP_200_OK)
+        except ValueError as ve:
+            return Response({"error": str(ve)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as exc:
+            logger.exception("Error during assistant chat: %s", exc)
+            return Response({"error": "Failed to get response from assistant."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

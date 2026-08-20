@@ -9,7 +9,9 @@ interface ThemeContextType {
   theme: 'light' | 'dark';
   themeSetting: ThemeType;
   setThemeSetting: (setting: ThemeType) => void;
-  activeColors: typeof colors.neutral;
+  activeColors: typeof colors.neutral & {
+    primaryCard: typeof colors.primaryCard;
+  };
 }
 
 const THEME_STORAGE_KEY = '@app_theme_setting';
@@ -18,7 +20,10 @@ const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
   themeSetting: 'system',
   setThemeSetting: () => {},
-  activeColors: colors.neutral,
+  activeColors: {
+    ...colors.neutral,
+    primaryCard: colors.primaryCard,
+  },
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -63,8 +68,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         ...colors.neutral, // fallback
         ...colors.dark,
         white: '#121811', // In dark mode, white surfaces become dark
+        primaryCard: colors.primaryCard, // Guaranteed contrast
       } 
-    : colors.neutral;
+    : {
+        ...colors.neutral,
+        primaryCard: colors.primaryCard, // Guaranteed contrast
+      };
 
   // Don't render until theme is loaded to prevent flicker
   if (!isLoaded) return null;

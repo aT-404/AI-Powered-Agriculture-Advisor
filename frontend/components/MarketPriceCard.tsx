@@ -5,13 +5,13 @@ import {
   StyleSheet,
   ViewStyle,
   TouchableOpacity,
-  ActivityIndicator,
   ScrollView,
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MarketPrice, MarketFilterHierarchy } from '@/types/market';
 import { fetchMarketFilters, fetchMarketPrices } from '@/services/marketService';
+import SkeletonLoader from './SkeletonLoader';
 import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
 
@@ -220,11 +220,18 @@ export const MarketPriceCard: React.FC<MarketPriceCardProps> = ({
 
       {/* ── Content: Loading / Error / Price Card ─────────────────────────── */}
       {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
-          <Text style={[styles.loadingText, { color: activeColors.textSecondary }]}>
-            Fetching latest mandi rates...
-          </Text>
+        <View style={[styles.loadingBox, { paddingVertical: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 16 }}>
+            <SkeletonLoader width={50} height={50} borderRadius={25} />
+            <View style={{ gap: 8 }}>
+              <SkeletonLoader width={100} height={24} borderRadius={6} />
+              <SkeletonLoader width={140} height={16} borderRadius={4} />
+            </View>
+          </View>
+          <View style={{ gap: 12 }}>
+            <SkeletonLoader width="100%" height={70} borderRadius={14} />
+            <SkeletonLoader width="100%" height={70} borderRadius={14} />
+          </View>
         </View>
       ) : error ? (
         <View style={styles.errorBox}>

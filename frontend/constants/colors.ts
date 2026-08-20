@@ -10,6 +10,12 @@ export const colors = {
     dark: '#1B5E20',
     subtle: '#E8F5E9',
   },
+  // Semantic component colors (forces contrast)
+  primaryCard: {
+    background: '#2E7D32',
+    text: '#FFFFFF',
+    textMuted: 'rgba(255, 255, 255, 0.85)',
+  },
   secondary: {
     DEFAULT: '#8D6E63', // Earth / Soil brown
     light: '#BCAAA4',

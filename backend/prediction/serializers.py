@@ -87,3 +87,27 @@ class PriceAlertCreateSerializer(serializers.ModelSerializer):
             'condition',
             'is_active',
         ]
+
+class CropYieldPredictionSerializer(serializers.Serializer):
+    """
+    Serializer for crop yield prediction input features.
+    """
+    N = serializers.FloatField(required=True)
+    P = serializers.FloatField(required=True)
+    K = serializers.FloatField(required=True)
+    Soil_pH = serializers.FloatField(required=True)
+    Soil_Moisture = serializers.FloatField(required=True)
+    Soil_Type = serializers.CharField(required=True)
+    Organic_Carbon = serializers.FloatField(required=True)
+    Temperature = serializers.FloatField(required=True)
+    Humidity = serializers.FloatField(required=True)
+    Rainfall = serializers.FloatField(required=True)
+    Sunlight_Hours = serializers.FloatField(required=True)
+    Wind_Speed = serializers.FloatField(required=True)
+    Region = serializers.CharField(required=True)
+    Altitude = serializers.FloatField(required=True)
+    Season = serializers.CharField(required=True)
+    Crop_Type = serializers.CharField(required=True)
+    Irrigation_Type = serializers.CharField(required=True)
+    Fertilizer_Used = serializers.CharField(required=True)
+    Pesticide_Used = serializers.CharField(required=True)
