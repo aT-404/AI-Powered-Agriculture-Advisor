@@ -9,17 +9,26 @@ interface MarketPriceCardProps {
 }
 
 export const MarketPriceCard: React.FC<MarketPriceCardProps> = ({ item }) => {
+  const formatPrice = (val: any) => {
+    if (val === null || val === undefined) return 'N/A';
+    const num = typeof val === 'number' ? val : parseFloat(String(val));
+    if (isNaN(num)) return String(val);
+    return num.toLocaleString();
+  };
+
   return (
     <View style={[styles.card, SHADOWS.sm]}>
       <View style={styles.header}>
         <View style={styles.commodityBox}>
           <Text style={styles.commodity}>{item.commodity}</Text>
           <Text style={styles.location}>
-            {item.market}, {item.district}, {item.state}
+            {item.market ? `${item.market}, ` : ''}
+            {item.district ? `${item.district}, ` : ''}
+            {item.state || 'All Mandis'}
           </Text>
         </View>
         <View style={styles.modalBox}>
-          <Text style={styles.modalPrice}>₹{item.modal_price.toLocaleString()}</Text>
+          <Text style={styles.modalPrice}>₹{formatPrice(item.modal_price)}</Text>
           <Text style={styles.modalLabel}>Modal Price / Quintal</Text>
         </View>
       </View>
@@ -28,13 +37,13 @@ export const MarketPriceCard: React.FC<MarketPriceCardProps> = ({ item }) => {
         <View style={styles.rangeItem}>
           <Ionicons name="arrow-down" size={12} color={COLORS.secondary} />
           <Text style={styles.rangeLabel}>Min: </Text>
-          <Text style={styles.rangeValue}>₹{item.min_price.toLocaleString()}</Text>
+          <Text style={styles.rangeValue}>₹{formatPrice(item.min_price)}</Text>
         </View>
         <View style={styles.rangeDivider} />
         <View style={styles.rangeItem}>
           <Ionicons name="arrow-up" size={12} color={COLORS.danger} />
           <Text style={styles.rangeLabel}>Max: </Text>
-          <Text style={styles.rangeValue}>₹{item.max_price.toLocaleString()}</Text>
+          <Text style={styles.rangeValue}>₹{formatPrice(item.max_price)}</Text>
         </View>
       </View>
     </View>

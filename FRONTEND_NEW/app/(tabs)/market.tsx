@@ -54,7 +54,12 @@ export default function MarketScreen() {
       // 1. Load Filter Hierarchy
       try {
         const filters = await marketService.getFilters();
-        if (filters.states) setAvailableStates(filters.states);
+        if (filters && filters.states && Array.isArray(filters.states)) {
+          const stateNames = filters.states
+            .map((st: any) => (typeof st === 'string' ? st : st?.name || ''))
+            .filter((name: string) => Boolean(name && name.trim()));
+          setAvailableStates(stateNames);
+        }
       } catch (err) {
         console.warn('Filter hierarchy load error:', err);
       }

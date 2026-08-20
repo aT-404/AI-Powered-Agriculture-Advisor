@@ -1,6 +1,16 @@
+export interface StateFilterItem {
+  name: string;
+  districts?: Array<{
+    name: string;
+    markets?: string[];
+  }>;
+}
+
 export interface MarketFilterHierarchy {
-  states: string[];
+  states: Array<string | StateFilterItem>;
   commodities: string[];
+  districts?: string[];
+  markets?: string[];
   hierarchy?: Record<string, Record<string, string[]>>;
 }
 
