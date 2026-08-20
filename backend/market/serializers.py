@@ -5,7 +5,8 @@ class MarketPriceQuerySerializer(serializers.Serializer):
     """
     Serializer representing query parameters for standalone market price requests.
     """
-    crop = serializers.CharField(required=True, help_text="Commodity name (e.g. Rice)")
+    crop = serializers.CharField(required=False, allow_blank=True, default='')
+    commodity = serializers.CharField(required=False, allow_blank=True, default='')
     state = serializers.CharField(required=False, allow_blank=True, default='')
     district = serializers.CharField(required=False, allow_blank=True, default='')
     market = serializers.CharField(required=False, allow_blank=True, default='')
