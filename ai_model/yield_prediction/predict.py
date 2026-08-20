@@ -1,172 +1,218 @@
+"""
+Predict Crop Yield
+------------------
+This script loads the trained Crop Yield Prediction pipeline (GradientBoostingRegressor),
+reads input parameters from input.json, validates input features and types (strictly ignoring
+Fertilizer, Pesticide, and Production if present), runs inference, and writes the predicted yield to output.json.
+"""
+
+import os
+import sys
 import json
+import math
+import argparse
+from pathlib import Path
 import joblib
 import pandas as pd
-from pathlib import Path
+import numpy as np
 
 
-# ============================================================
-# PATHS
-# ============================================================
-
-BASE_DIR = Path(__file__).resolve().parent
-
-INPUT_PATH = BASE_DIR / "input.json"
-
-MODEL_PATH = BASE_DIR / "models" / "best_yield_model.pkl"
-
-ENCODER_PATH = BASE_DIR / "models" / "yield_label_encoders.pkl"
-
-FEATURES_PATH = BASE_DIR / "models" / "yield_features.pkl"
+# Required feature columns (strictly excluding Fertilizer, Pesticide, and Production)
+REQUIRED_FEATURES = ["Crop", "Crop_Year", "Season", "State", "Area", "Annual_Rainfall"]
+NUMERICAL_FEATURES = ["Crop_Year", "Area", "Annual_Rainfall"]
+CATEGORICAL_FEATURES = ["Crop", "Season", "State"]
+EXCLUDED_FEATURES = ["fertilizer", "pesticide", "production"]
 
 
-# ============================================================
-# LOAD MODEL
-# ============================================================
+def resolve_model_path(custom_path: str = None) -> Path:
+    """Resolves the path to the trained yield model pipeline."""
+    if custom_path:
+        p = Path(custom_path)
+        if p.exists() and p.is_file():
+            return p.resolve()
+        raise FileNotFoundError(f"Trained model not found at specified path: {custom_path}")
 
-print("==============================================")
-print("       CROP YIELD PREDICTION")
-print("==============================================")
+    script_dir = Path(__file__).resolve().parent
+    cwd = Path.cwd()
 
-model = joblib.load(MODEL_PATH)
+    candidate_paths = [
+        script_dir / "models" / "yield_prediction_model.pkl",
+        cwd / "models" / "yield_prediction_model.pkl",
+        cwd / "yield model" / "models" / "yield_prediction_model.pkl",
+    ]
 
-encoders = joblib.load(ENCODER_PATH)
+    for path in candidate_paths:
+        if path.exists() and path.is_file():
+            return path.resolve()
 
-features = joblib.load(FEATURES_PATH)
-
-print("Model loaded successfully.")
-
-
-# ============================================================
-# LOAD INPUT JSON
-# ============================================================
-
-with open(INPUT_PATH, "r") as file:
-
-    input_data = json.load(file)
-
-input_df = pd.DataFrame([input_data])
-
-
-print()
-print("Input received successfully.")
-
-
-# ============================================================
-# CHECK FEATURES
-# ============================================================
-
-missing_features = [
-    feature
-    for feature in features
-    if feature not in input_df.columns
-]
-
-if missing_features:
-
-    raise ValueError(
-        f"Missing features: {missing_features}"
+    raise FileNotFoundError(
+        "Trained model 'yield_prediction_model.pkl' not found in 'models/' directory. "
+        "Please train the model first by running 'python train.py'."
     )
 
 
-# ============================================================
-# ENCODE CATEGORICAL FEATURES
-# ============================================================
+def resolve_input_path(custom_path: str = None) -> Path:
+    """Resolves the path to input.json."""
+    if custom_path:
+        p = Path(custom_path)
+        if p.exists() and p.is_file():
+            return p.resolve()
+        raise FileNotFoundError(f"Input file not found at specified path: {custom_path}")
 
-for col, encoder in encoders.items():
+    cwd = Path.cwd()
+    script_dir = Path(__file__).resolve().parent
 
-    if col not in input_df.columns:
-        continue
+    candidate_paths = [
+        cwd / "input.json",
+        script_dir / "input.json",
+        cwd / "yield model" / "input.json",
+    ]
 
-    value = input_df[col].iloc[0]
+    for path in candidate_paths:
+        if path.exists() and path.is_file():
+            return path.resolve()
 
-    print(f"Encoding {col}: {value}")
+    raise FileNotFoundError(
+        "Input file 'input.json' not found. "
+        "Please provide an 'input.json' file with the required crop and environmental parameters."
+    )
 
-    # Check whether value exists in training categories
-    if value not in encoder.classes_:
 
+def resolve_output_path(custom_path: str = None, input_path: Path = None) -> Path:
+    """Determines where to save output.json."""
+    if custom_path:
+        return Path(custom_path).resolve()
+
+    if input_path and input_path.parent.exists():
+        return (input_path.parent / "output.json").resolve()
+
+    script_dir = Path(__file__).resolve().parent
+    return (script_dir / "output.json").resolve()
+
+
+def load_and_validate_input(input_path: Path) -> dict:
+    """Reads and validates input.json ensuring all required fields are present and valid."""
+    try:
+        with open(input_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON syntax in '{input_path}': {e}") from e
+    except Exception as e:
+        raise ValueError(f"Failed to read input file '{input_path}': {e}") from e
+
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected JSON object in '{input_path}', got {type(data).__name__}.")
+
+    # Check for excluded features (Fertilizer, Pesticide, Production) and notify user
+    present_excluded = [k for k in data.keys() if k.strip().lower() in EXCLUDED_FEATURES]
+    if present_excluded:
+        print(f"[!] Notice: '{', '.join(present_excluded)}' provided in input.json will be safely ignored "
+              f"as Fertilizer, Pesticide, and Production are excluded from the Yield Prediction model.")
+
+    # Match input keys case-insensitively to standard feature names
+    normalized_input = {}
+    for key, value in data.items():
+        clean_key = key.strip()
+        matched = False
+        for req in REQUIRED_FEATURES:
+            if clean_key.lower() == req.lower():
+                normalized_input[req] = value
+                matched = True
+                break
+        if not matched and clean_key.lower() not in EXCLUDED_FEATURES:
+            print(f"[!] Warning: Unrecognized field '{key}' in input.json will be ignored.")
+
+    # Validate presence of required features
+    missing_fields = [f for f in REQUIRED_FEATURES if f not in normalized_input]
+    if missing_fields:
         raise ValueError(
-            f"\nUnknown value for {col}: {value}\n"
-            f"Allowed values:\n{list(encoder.classes_)}"
+            f"Missing required input field(s): {', '.join(missing_fields)}. "
+            f"Required fields are: {', '.join(REQUIRED_FEATURES)}"
         )
 
-    # Encode value
-    input_df[col] = encoder.transform(
-        input_df[col]
-    )
+    # Validate categorical features
+    for cat_col in CATEGORICAL_FEATURES:
+        val = normalized_input[cat_col]
+        if val is None or not str(val).strip():
+            raise ValueError(f"Categorical field '{cat_col}' cannot be null or empty.")
+        normalized_input[cat_col] = str(val).strip()
+
+    # Validate numerical features
+    for num_col in NUMERICAL_FEATURES:
+        val = normalized_input[num_col]
+        if val is None:
+            raise ValueError(f"Numerical field '{num_col}' cannot be null.")
+        try:
+            num_val = float(val)
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid numeric value for field '{num_col}': received '{val}'")
+
+        if math.isnan(num_val) or math.isinf(num_val):
+            raise ValueError(f"Field '{num_col}' has invalid numeric value: {num_val}")
+
+        if num_col == "Crop_Year":
+            normalized_input[num_col] = int(num_val)
+        else:
+            normalized_input[num_col] = num_val
+
+    return normalized_input
 
 
-# ============================================================
-# HANDLE YES/NO (BOOLEAN-STYLE) COLUMNS
-# ============================================================
-# Some columns (e.g. Fertilizer_Used, Pesticide_Used) may have been
-# stored as 0/1 or True/False in the training CSV, so they never went
-# through the categorical LabelEncoder step above. If the JSON input
-# gives them as "Yes"/"No" strings instead, convert them here so the
-# numeric-cast step below doesn't fail.
+def predict_yield(pipeline, input_features: dict) -> dict:
+    """Formats features in exact order, applies preprocessing pipeline, and predicts yield."""
+    # Create single-row DataFrame in the exact feature order
+    feature_df = pd.DataFrame([[input_features[f] for f in REQUIRED_FEATURES]], columns=REQUIRED_FEATURES)
 
-YES_NO_MAP = {
-    "yes": 1, "no": 0,
-    "true": 1, "false": 0,
-    "y": 1, "n": 0,
-}
+    # Predict yield using the GradientBoostingRegressor pipeline
+    predicted_val = pipeline.predict(feature_df)[0]
 
-for col in input_df.columns:
+    # Non-negative yield constraint
+    predicted_yield = max(0.0, float(predicted_val))
 
-    if col in encoders:
-        continue  # already numeric-encoded above
+    result = {
+        "predicted_yield": round(predicted_yield, 2),
+    }
 
-    value = input_df[col].iloc[0]
-
-    if isinstance(value, str) and value.strip().lower() in YES_NO_MAP:
-
-        print(f"Encoding {col} (yes/no): {value}")
-
-        input_df[col] = YES_NO_MAP[value.strip().lower()]
+    return result
 
 
-# ============================================================
-# FORCE NUMERIC DATA
-# ============================================================
+def main():
+    parser = argparse.ArgumentParser(description="Predict Crop Yield from input.json")
+    parser.add_argument("--model", type=str, default=None, help="Path to trained model .pkl")
+    parser.add_argument("--input", type=str, default=None, help="Path to input.json")
+    parser.add_argument("--output", type=str, default=None, help="Path to output.json")
+    args = parser.parse_args()
 
-for col in input_df.columns:
+    try:
+        model_path = resolve_model_path(args.model)
+        input_path = resolve_input_path(args.input)
+        output_path = resolve_output_path(args.output, input_path)
 
-    input_df[col] = pd.to_numeric(
-        input_df[col],
-        errors="raise"
-    )
+        print(f"[+] Loading trained model pipeline from: {model_path}")
+        pipeline = joblib.load(model_path)
+
+        print(f"[+] Reading input data from: {input_path}")
+        input_features = load_and_validate_input(input_path)
+
+        print(f"[+] Cleaned input features: {input_features}")
+        print("[+] Performing yield prediction...")
+        prediction_result = predict_yield(pipeline, input_features)
+
+        # Save to output.json
+        print(f"[+] Writing prediction result to: {output_path}")
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(prediction_result, f, indent=4)
+
+        print("=" * 50)
+        print(" Crop Yield Prediction Result:")
+        print(f"  Predicted Yield : {prediction_result.get('predicted_yield')}")
+        print("=" * 50)
+        print("[SUCCESS] Prediction completed successfully!")
+
+    except Exception as e:
+        print(f"\n[ERROR] Prediction failed: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
-# ============================================================
-# ARRANGE FEATURES IN TRAINING ORDER
-# ============================================================
-
-input_df = input_df[features]
-
-
-print()
-print("Final model input:")
-print(input_df)
-
-
-# ============================================================
-# PREDICTION
-# ============================================================
-
-prediction = model.predict(input_df)[0]
-
-
-# ============================================================
-# OUTPUT
-# ============================================================
-
-print()
-print("==============================================")
-print("             PREDICTION RESULT")
-print("==============================================")
-
-print(
-    f"Predicted Crop Yield: "
-    f"{prediction:.2f} tons/hectare"
-)
-
-print("==============================================")
+if __name__ == "__main__":
+    main()

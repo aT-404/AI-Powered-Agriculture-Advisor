@@ -1,440 +1,234 @@
 """
-CROP YIELD PREDICTION - REGRESSION MODEL
-
-This script trains models to answer:
-"How much yield will I get?"
-
-Models used:
-1. Random Forest Regressor
-2. XGBoost Regressor
-
-The models are compared using:
-- RMSE
-- MAE
-- R2 Score
-
-The trained models and label encoders are saved
-inside the models/ folder.
+Train Crop Yield Prediction Model
+---------------------------------
+This script loads the crop yield dataset, removes Fertilizer, Pesticide, and Production columns,
+builds a preprocessing and GradientBoostingRegressor pipeline, evaluates regression
+metrics (R2, MAE, MSE, RMSE), and saves the trained model pipeline and metadata.
 """
 
 import os
+import sys
+import json
+import argparse
 from pathlib import Path
-
+import joblib
 import pandas as pd
 import numpy as np
-
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-
-import xgboost as xgb
-import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, root_mean_squared_error
 
 
-# ============================================================
-# STEP 1: Set project paths
-# ============================================================
-
-# Get the folder where this train.py file is located
-BASE_DIR = Path(__file__).resolve().parent
-
-# Dataset location
-DATA_PATH = BASE_DIR / "data" / "crop-yield.csv"
-
-# Models folder
-MODELS_DIR = BASE_DIR / "models"
-
-# Create models folder if it doesn't exist
-MODELS_DIR.mkdir(parents=True, exist_ok=True)
+# Target column and columns to exclude
+TARGET_COLUMN = "Yield"
+EXCLUDE_COLUMNS = ["fertilizer", "pesticide", "production"]
 
 
-print("==============================================")
-print("      CROP YIELD PREDICTION - TRAINING")
-print("==============================================")
-print()
+def resolve_dataset_path(custom_path: str = None) -> Path:
+    """Finds and resolves the yield dataset path across standard locations."""
+    if custom_path:
+        p = Path(custom_path)
+        if p.exists() and p.is_file():
+            return p.resolve()
+        raise FileNotFoundError(f"Specified dataset file not found: {custom_path}")
 
+    script_dir = Path(__file__).resolve().parent
+    cwd = Path.cwd()
 
-# ============================================================
-# STEP 2: Check dataset
-# ============================================================
+    candidate_relative_paths = [
+        Path("yield dataset") / "crop_yield.csv",
+        Path("yield dataset") / "Crop_yield.csv",
+        Path("data") / "crop_yield.csv",
+        Path("data") / "yield_dataset.csv",
+        Path("crop_yield.csv"),
+        Path("yield_dataset.csv"),
+    ]
 
-if not DATA_PATH.exists():
+    search_roots = [script_dir, cwd, script_dir.parent]
+
+    for root in search_roots:
+        for rel_path in candidate_relative_paths:
+            candidate = (root / rel_path).resolve()
+            if candidate.exists() and candidate.is_file():
+                return candidate
+
     raise FileNotFoundError(
-        f"Dataset not found at:\n{DATA_PATH}"
+        "Crop yield dataset could not be located. "
+        "Please ensure 'crop_yield.csv' exists in 'yield dataset/' or provide --data path."
     )
 
-print("Dataset path:")
-print(DATA_PATH)
-print()
+
+def load_and_preprocess_dataset(dataset_path: Path):
+    """Loads CSV, validates columns, safely removes Fertilizer, Pesticide, and Production, and cleans data."""
+    print(f"[+] Loading dataset from: {dataset_path}")
+    try:
+        df = pd.read_csv(dataset_path)
+    except Exception as e:
+        raise ValueError(f"Failed to read CSV dataset: {e}") from e
+
+    if df.empty:
+        raise ValueError("Dataset is empty.")
+
+    print(f"[+] Original dataset shape: {df.shape}")
+    print(f"[+] Original columns: {df.columns.tolist()}")
+
+    # Find target column case-insensitively
+    target_match = None
+    for col in df.columns:
+        if col.strip().lower() == TARGET_COLUMN.lower():
+            target_match = col
+            break
+
+    if not target_match:
+        raise ValueError(f"Required target column '{TARGET_COLUMN}' not found in dataset.")
+
+    if target_match != TARGET_COLUMN:
+        df = df.rename(columns={target_match: TARGET_COLUMN})
+
+    # Safely identify and drop Fertilizer, Pesticide, and Production columns
+    dropped_cols = []
+    for col in df.columns:
+        if col.strip().lower() in EXCLUDE_COLUMNS:
+            dropped_cols.append(col)
+
+    if dropped_cols:
+        print(f"[+] Safely removing excluded columns: {dropped_cols}")
+        df = df.drop(columns=dropped_cols)
+    else:
+        print("[!] Note: No excluded columns were found in dataset.")
+
+    # Strip whitespace from string/categorical columns
+    str_cols = df.select_dtypes(include=["object", "string"]).columns
+    for col in str_cols:
+        df[col] = df[col].astype(str).str.strip()
+
+    # Drop null values if any
+    null_count = df.isnull().sum().sum()
+    if null_count > 0:
+        print(f"[!] Warning: Found {null_count} missing values. Dropping incomplete rows...")
+        df = df.dropna()
+
+    # Identify feature columns (all columns except Yield)
+    feature_columns = [col for col in df.columns if col != TARGET_COLUMN]
+
+    # Classify categorical vs numerical feature columns
+    cat_features = [col for col in feature_columns if not pd.api.types.is_numeric_dtype(df[col])]
+    num_features = [col for col in feature_columns if col not in cat_features]
+
+    print(f"[+] Target column: '{TARGET_COLUMN}'")
+    print(f"[+] Feature columns ({len(feature_columns)}): {feature_columns}")
+    print(f"    - Categorical features ({len(cat_features)}): {cat_features}")
+    print(f"    - Numerical features ({len(num_features)}): {num_features}")
+
+    return df, feature_columns, cat_features, num_features
 
 
-# ============================================================
-# STEP 3: Load the dataset
-# ============================================================
+def train_and_evaluate(df: pd.DataFrame, feature_columns: list, cat_features: list, num_features: list, random_state: int = 42):
+    """Builds preprocessing + GradientBoostingRegressor pipeline, trains, and evaluates."""
+    X = df[feature_columns]
+    y = df[TARGET_COLUMN]
 
-df = pd.read_csv(DATA_PATH)
-
-print("Step 1: Data loaded")
-print("Shape:", df.shape)
-print("Missing values:", df.isnull().sum().sum())
-print()
-
-
-# ============================================================
-# STEP 4: Remove missing rows
-# ============================================================
-
-df = df.dropna()
-
-print("After removing missing rows:")
-print("Shape:", df.shape)
-print()
-
-
-# ============================================================
-# STEP 5: Encode text columns
-# ============================================================
-
-target_col = "Crop_Yield_ton_per_hectare"
-
-if target_col not in df.columns:
-    raise ValueError(
-        f"Target column '{target_col}' was not found in the dataset.\n"
-        f"Available columns: {list(df.columns)}"
+    print(f"[+] Splitting dataset into train/test sets (test_size=0.2, random_state={random_state})...")
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=random_state
     )
 
-text_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
-
-print("Categorical columns:", text_cols)
-print()
-
-encoders = {}
-
-for col in text_cols:
-
-    le = LabelEncoder()
-
-    # Convert everything to string before encoding
-    df[col] = df[col].astype(str)
-
-    # Fit encoder on original categorical values
-    df[col] = le.fit_transform(df[col])
-
-    # Save encoder
-    encoders[col] = le
-
-    print(f"{col}:")
-    print("  Classes:", list(le.classes_))
-print("Step 2: Encoding text columns:")
-print(text_cols)
-print()
-
-
-
-# ============================================================
-# STEP 6: Split data into X and y
-# ============================================================
-
-X = df.drop(target_col, axis=1)
-
-y = df[target_col]
-
-print("Step 3: X and y split")
-
-print("X columns:")
-print(list(X.columns))
-
-print()
-
-print("Target column:")
-print(target_col)
-
-print()
-
-print("Example yield values:")
-print(y.head(3).values)
-
-print()
-
-
-# ============================================================
-# STEP 7: Train/Test Split
-# ============================================================
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42
-)
-
-print("Step 4: Train/test split done")
-
-print("Training samples:", X_train.shape[0])
-print("Testing samples :", X_test.shape[0])
-
-print()
-
-
-# ============================================================
-# STEP 8: Train Random Forest
-# ============================================================
-
-print("Training Random Forest...")
-
-rf_model = RandomForestRegressor(
-    n_estimators=200,
-    random_state=42,
-    n_jobs=-1
-)
-
-rf_model.fit(
-    X_train,
-    y_train
-)
-
-rf_pred = rf_model.predict(X_test)
-
-rf_rmse = np.sqrt(
-    mean_squared_error(
-        y_test,
-        rf_pred
+    print("[+] Constructing preprocessing and GradientBoostingRegressor pipeline...")
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), cat_features),
+            ("num", StandardScaler(), num_features),
+        ],
+        remainder="passthrough",
     )
-)
 
-rf_mae = mean_absolute_error(
-    y_test,
-    rf_pred
-)
-
-rf_r2 = r2_score(
-    y_test,
-    rf_pred
-)
-
-
-# ============================================================
-# STEP 9: Random Forest Cross Validation
-# ============================================================
-
-rf_cv_scores = cross_val_score(
-    rf_model,
-    X,
-    y,
-    cv=5,
-    scoring="r2"
-)
-
-print()
-print("Step 5: Random Forest Regressor trained")
-
-print("RMSE:", round(rf_rmse, 4))
-print("MAE :", round(rf_mae, 4))
-print("R2  :", round(rf_r2, 4))
-
-print(
-    "Cross-validation R2 scores:",
-    np.round(rf_cv_scores, 4)
-)
-
-print(
-    "Average CV R2:",
-    round(rf_cv_scores.mean(), 4)
-)
-
-print()
-
-
-# ============================================================
-# STEP 10: Train XGBoost
-# ============================================================
-
-print("Training XGBoost...")
-
-xgb_model = xgb.XGBRegressor(
-    n_estimators=300,
-    max_depth=6,
-    learning_rate=0.05,
-    random_state=42,
-    n_jobs=-1
-)
-
-xgb_model.fit(
-    X_train,
-    y_train
-)
-
-xgb_pred = xgb_model.predict(X_test)
-
-xgb_rmse = np.sqrt(
-    mean_squared_error(
-        y_test,
-        xgb_pred
+    pipeline = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor),
+            ("regressor", GradientBoostingRegressor(random_state=random_state)),
+        ]
     )
-)
 
-xgb_mae = mean_absolute_error(
-    y_test,
-    xgb_pred
-)
+    print("[+] Training GradientBoostingRegressor model...")
+    pipeline.fit(X_train, y_train)
 
-xgb_r2 = r2_score(
-    y_test,
-    xgb_pred
-)
+    print("[+] Evaluating model on test set...")
+    y_pred = pipeline.predict(X_test)
 
-print()
-print("Step 6: XGBoost Regressor trained")
+    r2 = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = root_mean_squared_error(y_test, y_pred)
 
-print("RMSE:", round(xgb_rmse, 4))
-print("MAE :", round(xgb_mae, 4))
-print("R2  :", round(xgb_r2, 4))
+    print("=" * 60)
+    print(" Crop Yield Prediction - Model Evaluation Metrics")
+    print("=" * 60)
+    print(f" Model Algorithm           : GradientBoostingRegressor")
+    print(f" R^2 Score (Coefficient)   : {r2:.4f}")
+    print(f" Mean Absolute Error (MAE) : {mae:.4f}")
+    print(f" Mean Squared Error (MSE)  : {mse:.4f}")
+    print(f" Root Mean Squared Error   : {rmse:.4f}")
+    print("=" * 60)
 
-print()
+    metrics = {
+        "r2_score": round(float(r2), 4),
+        "mae": round(float(mae), 4),
+        "mse": round(float(mse), 4),
+        "rmse": round(float(rmse), 4),
+    }
 
-
-# ============================================================
-# STEP 11: Compare models
-# ============================================================
-
-print("==============================================")
-print("STEP 7: MODEL COMPARISON")
-print("==============================================")
-
-print(
-    f"Random Forest -> "
-    f"RMSE: {rf_rmse:.4f} | "
-    f"MAE: {rf_mae:.4f} | "
-    f"R2: {rf_r2:.4f}"
-)
-
-print(
-    f"XGBoost       -> "
-    f"RMSE: {xgb_rmse:.4f} | "
-    f"MAE: {xgb_mae:.4f} | "
-    f"R2: {xgb_r2:.4f}"
-)
-
-print()
+    return pipeline, metrics
 
 
-# ============================================================
-# STEP 12: Select best model
-# ============================================================
+def save_artifacts(pipeline: Pipeline, feature_columns: list, cat_features: list, num_features: list, metrics: dict, output_dir: Path):
+    """Saves the trained pipeline and metadata."""
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-if rf_r2 >= xgb_r2:
+    model_path = output_dir / "yield_prediction_model.pkl"
+    metadata_path = output_dir / "model_metadata.json"
 
-    best_model_name = "Random Forest"
-    best_model = rf_model
+    print(f"[+] Saving model pipeline to: {model_path}")
+    joblib.dump(pipeline, model_path)
 
-else:
+    metadata = {
+        "model_type": "GradientBoostingRegressor",
+        "target": TARGET_COLUMN,
+        "features": feature_columns,
+        "categorical_features": cat_features,
+        "numerical_features": num_features,
+        "excluded_features": ["Fertilizer", "Pesticide", "Production"],
+        "metrics": metrics,
+        "random_state": 42,
+    }
 
-    best_model_name = "XGBoost"
-    best_model = xgb_model
+    print(f"[+] Saving model metadata to: {metadata_path}")
+    with open(metadata_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=4)
 
-
-print(
-    f"Best model (higher R2 is better): "
-    f"{best_model_name}"
-)
-
-print()
-
-
-# ============================================================
-# STEP 13: Feature Importance
-# ============================================================
-
-importance = pd.Series(
-    best_model.feature_importances_,
-    index=X.columns
-).sort_values(
-    ascending=False
-)
-
-print("==============================================")
-print("STEP 8: FEATURE IMPORTANCE")
-print("==============================================")
-
-print(
-    f"Which factors affect yield most (from {best_model_name}):"
-)
-
-print(importance)
-
-print()
+    print("[SUCCESS] Model training and export completed successfully!")
 
 
-# ============================================================
-# STEP 14: Save trained models
-# ============================================================
+def main():
+    parser = argparse.ArgumentParser(description="Train Crop Yield Prediction GradientBoostingRegressor Model")
+    parser.add_argument("--data", type=str, default=None, help="Path to crop_yield.csv dataset")
+    parser.add_argument("--output-dir", type=str, default=None, help="Directory to save the trained model")
+    args = parser.parse_args()
 
-rf_path = MODELS_DIR / "yield_regressor_rf.pkl"
+    script_dir = Path(__file__).resolve().parent
+    models_dir = Path(args.output_dir) if args.output_dir else (script_dir / "models")
 
-xgb_path = MODELS_DIR / "yield_regressor_xgb.pkl"
+    try:
+        dataset_path = resolve_dataset_path(args.data)
+        df, feature_cols, cat_cols, num_cols = load_and_preprocess_dataset(dataset_path)
+        pipeline, metrics = train_and_evaluate(df, feature_cols, cat_cols, num_cols, random_state=42)
+        save_artifacts(pipeline, feature_cols, cat_cols, num_cols, metrics, models_dir)
+    except Exception as e:
+        print(f"\n[ERROR] Training failed: {e}", file=sys.stderr)
+        sys.exit(1)
 
-encoder_path = MODELS_DIR / "yield_label_encoders.pkl"
 
-features_path = MODELS_DIR / "yield_features.pkl"
-
-best_model_path = MODELS_DIR / "best_yield_model.pkl"
-
-
-joblib.dump(
-    rf_model,
-    MODELS_DIR / "yield_regressor_rf.pkl"
-)
-
-joblib.dump(
-    xgb_model,
-    MODELS_DIR / "yield_regressor_xgb.pkl"
-)
-
-joblib.dump(
-    best_model,
-    MODELS_DIR / "best_yield_model.pkl"
-)
-
-joblib.dump(
-    encoders,
-    MODELS_DIR / "yield_label_encoders.pkl"
-)
-
-joblib.dump(
-    list(X.columns),
-    MODELS_DIR / "yield_features.pkl"
-)
-
-# ============================================================
-# STEP 15: Final output
-# ============================================================
-
-print("==============================================")
-print("TRAINING COMPLETED")
-print("==============================================")
-
-print()
-
-print("Saved models:")
-
-print(f"1. {rf_path}")
-
-print(f"2. {xgb_path}")
-
-print(f"3. {encoder_path}")
-
-print(f"4. {features_path}")
-
-print(f"5. {best_model_path}")
-
-print()
-
-print("Best model:", best_model_name)
-
-print()
-
-print("Dataset used:")
-print(DATA_PATH)
-
-print("==============================================")
+if __name__ == "__main__":
+    main()
