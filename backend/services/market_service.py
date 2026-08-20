@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-DATA_GOV_IN_API_KEY = os.environ.get("DATA_GOV_IN_API_KEY", "")
+DATA_GOV_IN_API_KEY = os.environ.get("DATA_GOV_IN_API_KEY") or os.environ.get("MARKET_API_KEY") or ""
 DATA_GOV_IN_RESOURCE_URL = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ class MarketService:
             "limit": limit,
         }
         if state:
-            params["filters[state]"] = state
+            params["filters[state.keyword]"] = state
         if district:
             params["filters[district]"] = district
         if commodity:
