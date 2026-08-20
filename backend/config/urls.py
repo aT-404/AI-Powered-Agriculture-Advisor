@@ -11,8 +11,8 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/crops/', include('crops.urls')),
     path('api/predictions/', include('predictions.urls')),
-    path('api/', include('prediction.urls')),
     path('api/market/', include('market.urls')),
+    path('api/', include('prediction.urls')),
     
     # Swagger API Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
