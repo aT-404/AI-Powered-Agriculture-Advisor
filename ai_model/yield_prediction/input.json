@@ -1,8 +1,8 @@
 {
-    "Crop": "Niger Seed",
-    "Crop_Year": 2003,
+    "Crop": "Rice",
+    "Crop_Year": 2026,
     "Season": "Kharif",
-    "State": "Karnataka",
-    "Area": 27486.0,
-    "Annual_Rainfall": 867.6
+    "State": "Kerala",
+    "Area": 10.0,
+    "Annual_Rainfall": 202.0
 }
