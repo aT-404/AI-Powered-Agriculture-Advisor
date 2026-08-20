@@ -7,7 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { colors } from '@/constants/colors';
+import { useTheme } from '@/store/ThemeContext';
 
 export interface ButtonProps {
   title: string;
@@ -28,31 +28,43 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
+  const { activeColors, isDark } = useTheme();
+
   const getContainerStyle = () => {
     switch (variant) {
       case 'secondary':
-        return styles.secondaryContainer;
+        return { backgroundColor: activeColors.border };
       case 'outline':
-        return styles.outlineContainer;
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderColor: activeColors.primary,
+        };
       case 'ghost':
-        return styles.ghostContainer;
+        return { backgroundColor: 'transparent' };
       case 'primary':
       default:
-        return styles.primaryContainer;
+        return {
+          backgroundColor: activeColors.primary,
+          shadowColor: isDark ? activeColors.primary : 'transparent',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: isDark ? 0.75 : 0,
+          shadowRadius: 12,
+          elevation: isDark ? 6 : 2,
+        };
     }
   };
 
-  const getTextStyle = () => {
+  const getTextColor = () => {
     switch (variant) {
       case 'secondary':
-        return styles.secondaryText;
+        return activeColors.textPrimary;
       case 'outline':
-        return styles.outlineText;
       case 'ghost':
-        return styles.ghostText;
+        return activeColors.primary;
       case 'primary':
       default:
-        return styles.primaryText;
+        return isDark ? '#090D16' : '#FFFFFF';
     }
   };
 
@@ -61,7 +73,7 @@ export const Button: React.FC<ButtonProps> = ({
       style={[
         styles.baseButton,
         getContainerStyle(),
-        disabled && styles.disabledContainer,
+        disabled && { backgroundColor: activeColors.border, opacity: 0.6 },
         style,
       ]}
       onPress={onPress}
@@ -71,10 +83,10 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'outline' || variant === 'ghost' ? colors.primary.DEFAULT : '#FFFFFF'}
+          color={variant === 'outline' || variant === 'ghost' ? activeColors.primary : (isDark ? '#090D16' : '#FFFFFF')}
         />
       ) : (
-        <Text style={[styles.baseText, getTextStyle(), disabled && styles.disabledText, textStyle]}>
+        <Text style={[styles.baseText, { color: getTextColor() }, disabled && { color: activeColors.textMuted }, textStyle]}>
           {title}
         </Text>
       )}
@@ -86,47 +98,15 @@ const styles = StyleSheet.create({
   baseButton: {
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 10,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
   },
-  primaryContainer: {
-    backgroundColor: colors.primary.DEFAULT,
-  },
-  secondaryContainer: {
-    backgroundColor: colors.secondary.DEFAULT,
-  },
-  outlineContainer: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.primary.DEFAULT,
-  },
-  ghostContainer: {
-    backgroundColor: 'transparent',
-  },
-  disabledContainer: {
-    backgroundColor: colors.neutral.border,
-    borderColor: colors.neutral.border,
-  },
   baseText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  primaryText: {
-    color: '#FFFFFF',
-  },
-  secondaryText: {
-    color: '#FFFFFF',
-  },
-  outlineText: {
-    color: colors.primary.DEFAULT,
-  },
-  ghostText: {
-    color: colors.primary.DEFAULT,
-  },
-  disabledText: {
-    color: colors.neutral.textMuted,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });
 

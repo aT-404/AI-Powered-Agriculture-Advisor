@@ -7,33 +7,29 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/constants/colors';
-
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
+import { NutrientGaugeInput } from '@/components/NutrientGaugeInput';
 import { YieldResultCard } from '@/components/YieldResultCard';
+import { FetchLocationButton } from '@/components/FetchLocationButton';
 import { Loading } from '@/components/Loading';
-
 import { predictCropYield } from '@/services/predictionService';
 import { YieldPredictionRequest, YieldPredictionResult } from '@/types/prediction';
+import { Fonts } from '@/constants/theme';
+import { useTheme } from '@/store/ThemeContext';
+import { UserLocationResult } from '@/utils/location';
 
 export default function YieldPredictScreen() {
   const router = useRouter();
-
-  // Force Light Theme Constants for Readability
-  const pageBg = colors.neutral.background; // #F8FAF8
-  const cardBg = colors.neutral.white;      // #FFFFFF
-  const textPrimary = colors.neutral.textPrimary; // #1E293B
-  const textSecondary = colors.neutral.textSecondary; // #64748B
-  const borderColor = colors.neutral.border; // #E0E6E0
+  const { activeColors } = useTheme();
 
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<YieldPredictionResult | null>(null);
 
-  // Form State
   const [formData, setFormData] = useState<YieldPredictionRequest>({
     N: 80,
     P: 40,
@@ -60,6 +56,13 @@ export default function YieldPredictScreen() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleLocationFetched = (loc: UserLocationResult) => {
+    if (loc.temperature !== undefined) handleUpdate('Temperature', loc.temperature);
+    if (loc.humidity !== undefined) handleUpdate('Humidity', loc.humidity);
+    if (loc.rainfall !== undefined) handleUpdate('Rainfall', loc.rainfall * 10);
+    if (loc.region) handleUpdate('Region', loc.region);
+  };
+
   const handlePredict = async () => {
     try {
       setIsLoading(true);
@@ -68,8 +71,8 @@ export default function YieldPredictScreen() {
       setResult(prediction);
     } catch (error: any) {
       Alert.alert(
-        'Prediction Error',
-        error.message || 'An error occurred while calculating the yield. Please try again later.'
+        'Error',
+        error.message || 'Unable to process yield prediction.'
       );
     } finally {
       setIsLoading(false);
@@ -80,143 +83,251 @@ export default function YieldPredictScreen() {
     if (!result) return null;
     return (
       <View style={styles.resultContainer}>
-        <YieldResultCard 
-          prediction={result} 
-          style={{ backgroundColor: cardBg, borderColor: borderColor }}
-          forceLight={true} 
+        <YieldResultCard
+          prediction={result}
+          style={{ backgroundColor: activeColors.card, borderColor: activeColors.border }}
         />
         <Button
           title="New Prediction"
           onPress={() => setResult(null)}
           variant="outline"
-          style={{ marginTop: 16 }}
+          style={{ marginTop: 14 }}
         />
       </View>
     );
   };
 
+  const renderOptionSelector = (
+    label: string,
+    options: string[],
+    selected: string,
+    onSelect: (opt: string) => void
+  ) => (
+    <View style={styles.optionGroup}>
+      <Text style={[styles.optionLabel, { color: activeColors.textPrimary }]}>{label}</Text>
+      <View style={styles.optionRow}>
+        {options.map((opt) => {
+          const isSelected = selected === opt;
+          return (
+            <TouchableOpacity
+              key={opt}
+              style={[
+                styles.optionChip,
+                {
+                  backgroundColor: isSelected ? activeColors.primary : activeColors.background,
+                  borderColor: isSelected ? activeColors.primary : activeColors.border,
+                },
+              ]}
+              onPress={() => onSelect(opt)}
+            >
+              <Text
+                style={[
+                  styles.optionChipText,
+                  { color: isSelected ? '#FFF' : activeColors.textPrimary },
+                ]}
+              >
+                {opt}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   const renderForm = () => {
     if (result) return null;
-    
+
     return (
       <View style={styles.formContainer}>
-        
-        {/* Soil Characteristics Card */}
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: borderColor }]}>
+        <FetchLocationButton onLocationFetched={handleLocationFetched} />
+
+        {/* Card 1: Soil Parameters */}
+        <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="leaf-outline" size={24} color={colors.primary.DEFAULT} style={styles.cardIcon} />
-            <View style={styles.cardHeaderTextContainer}>
-              <Text style={[styles.cardTitle, { color: textPrimary }]}>Soil Characteristics</Text>
-              <Text style={[styles.cardSubtitle, { color: textSecondary }]}>Enter the nutrient and moisture conditions of your field.</Text>
+            <View style={[styles.cardIconBox, { backgroundColor: activeColors.primarySubtle }]}>
+              <Ionicons name="flask-outline" size={16} color={activeColors.primary} />
             </View>
+            <Text style={[styles.cardTitle, { color: activeColors.textPrimary }]}>Soil Parameters</Text>
           </View>
-          
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Input label="Nitrogen (N) kg/ha" value={String(formData.N)} onChangeText={(t) => handleUpdate('N', Number(t))} keyboardType="numeric" />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={styles.flex1}>
-              <Input label="Phosphorus (P) kg/ha" value={String(formData.P)} onChangeText={(t) => handleUpdate('P', Number(t))} keyboardType="numeric" />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Input label="Potassium (K) kg/ha" value={String(formData.K)} onChangeText={(t) => handleUpdate('K', Number(t))} keyboardType="numeric" />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={styles.flex1}>
-              <Input label="pH Level" value={String(formData.Soil_pH)} onChangeText={(t) => handleUpdate('Soil_pH', Number(t))} keyboardType="numeric" />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Input label="Moisture (%)" value={String(formData.Soil_Moisture)} onChangeText={(t) => handleUpdate('Soil_Moisture', Number(t))} keyboardType="numeric" />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={styles.flex1}>
-              <Input label="Organic Carbon (%)" value={String(formData.Organic_Carbon)} onChangeText={(t) => handleUpdate('Organic_Carbon', Number(t))} keyboardType="numeric" />
-            </View>
-          </View>
-          <Input label="Soil Type" value={formData.Soil_Type} onChangeText={(t) => handleUpdate('Soil_Type', t)} placeholder="e.g. Loamy, Sandy, Clay" />
+
+          <NutrientGaugeInput
+            label="Nitrogen (N)"
+            value={String(formData.N)}
+            onChangeText={(t) => handleUpdate('N', Number(t) || 0)}
+            min={0}
+            max={200}
+            unit="kg/ha"
+            step={5}
+            icon="flask-outline"
+            optimalRange={{ min: 40, max: 140 }}
+          />
+
+          <NutrientGaugeInput
+            label="Phosphorus (P)"
+            value={String(formData.P)}
+            onChangeText={(t) => handleUpdate('P', Number(t) || 0)}
+            min={0}
+            max={150}
+            unit="kg/ha"
+            step={5}
+            icon="options-outline"
+            optimalRange={{ min: 20, max: 90 }}
+          />
+
+          <NutrientGaugeInput
+            label="Potassium (K)"
+            value={String(formData.K)}
+            onChangeText={(t) => handleUpdate('K', Number(t) || 0)}
+            min={0}
+            max={200}
+            unit="kg/ha"
+            step={5}
+            icon="sparkles-outline"
+            optimalRange={{ min: 30, max: 100 }}
+          />
+
+          <NutrientGaugeInput
+            label="Soil pH"
+            value={String(formData.Soil_pH)}
+            onChangeText={(t) => handleUpdate('Soil_pH', Number(t) || 6.5)}
+            min={3.5}
+            max={10.0}
+            unit="pH"
+            step={0.1}
+            icon="speedometer-outline"
+            optimalRange={{ min: 6.0, max: 7.5 }}
+          />
+
+          <NutrientGaugeInput
+            label="Soil Moisture"
+            value={String(formData.Soil_Moisture)}
+            onChangeText={(t) => handleUpdate('Soil_Moisture', Number(t) || 0)}
+            min={0}
+            max={100}
+            unit="%"
+            step={5}
+            icon="water-outline"
+            optimalRange={{ min: 30, max: 75 }}
+          />
+
+          {renderOptionSelector(
+            'Soil Type',
+            ['Loamy', 'Clay', 'Sandy', 'Silty', 'Black'],
+            formData.Soil_Type,
+            (opt) => handleUpdate('Soil_Type', opt)
+          )}
         </View>
 
-        {/* Climate & Geography Card */}
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: borderColor }]}>
+        {/* Card 2: Environment */}
+        <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="partly-sunny-outline" size={24} color={colors.accent.dark} style={styles.cardIcon} />
-            <View style={styles.cardHeaderTextContainer}>
-              <Text style={[styles.cardTitle, { color: textPrimary }]}>Climate & Geography</Text>
-              <Text style={[styles.cardSubtitle, { color: textSecondary }]}>Provide the environmental and regional conditions.</Text>
+            <View style={[styles.cardIconBox, { backgroundColor: activeColors.primarySubtle }]}>
+              <Ionicons name="partly-sunny-outline" size={16} color={activeColors.primary} />
             </View>
+            <Text style={[styles.cardTitle, { color: activeColors.textPrimary }]}>Environment</Text>
           </View>
 
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Input label="Temperature (°C)" value={String(formData.Temperature)} onChangeText={(t) => handleUpdate('Temperature', Number(t))} keyboardType="numeric" />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={styles.flex1}>
-              <Input label="Humidity (%)" value={String(formData.Humidity)} onChangeText={(t) => handleUpdate('Humidity', Number(t))} keyboardType="numeric" />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Input label="Rainfall (mm)" value={String(formData.Rainfall)} onChangeText={(t) => handleUpdate('Rainfall', Number(t))} keyboardType="numeric" />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={styles.flex1}>
-              <Input label="Sunlight (Hours)" value={String(formData.Sunlight_Hours)} onChangeText={(t) => handleUpdate('Sunlight_Hours', Number(t))} keyboardType="numeric" />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Input label="Wind Speed (km/h)" value={String(formData.Wind_Speed)} onChangeText={(t) => handleUpdate('Wind_Speed', Number(t))} keyboardType="numeric" />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={styles.flex1}>
-              <Input label="Altitude (m)" value={String(formData.Altitude)} onChangeText={(t) => handleUpdate('Altitude', Number(t))} keyboardType="numeric" />
-            </View>
-          </View>
-          <Input label="Region" value={formData.Region} onChangeText={(t) => handleUpdate('Region', t)} placeholder="e.g. South, North, East" />
+          <NutrientGaugeInput
+            label="Temperature"
+            value={String(formData.Temperature)}
+            onChangeText={(t) => handleUpdate('Temperature', Number(t) || 0)}
+            min={10}
+            max={50}
+            unit="°C"
+            step={1}
+            icon="thermometer-outline"
+            optimalRange={{ min: 20, max: 35 }}
+          />
+
+          <NutrientGaugeInput
+            label="Rainfall"
+            value={String(formData.Rainfall)}
+            onChangeText={(t) => handleUpdate('Rainfall', Number(t) || 0)}
+            min={0}
+            max={3000}
+            unit="mm"
+            step={50}
+            icon="rainy-outline"
+            optimalRange={{ min: 500, max: 1800 }}
+          />
+
+          <NutrientGaugeInput
+            label="Sunlight"
+            value={String(formData.Sunlight_Hours)}
+            onChangeText={(t) => handleUpdate('Sunlight_Hours', Number(t) || 0)}
+            min={1}
+            max={16}
+            unit="Hours"
+            step={1}
+            icon="sunny-outline"
+            optimalRange={{ min: 6, max: 11 }}
+          />
+
+          {renderOptionSelector(
+            'Region',
+            ['North', 'South', 'East', 'West', 'Central'],
+            formData.Region,
+            (opt) => handleUpdate('Region', opt)
+          )}
         </View>
 
-        {/* Farm Management Card */}
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: borderColor }]}>
+        {/* Card 3: Crop Management */}
+        <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="water-outline" size={24} color="#0288D1" style={styles.cardIcon} />
-            <View style={styles.cardHeaderTextContainer}>
-              <Text style={[styles.cardTitle, { color: textPrimary }]}>Farm Management</Text>
-              <Text style={[styles.cardSubtitle, { color: textSecondary }]}>Enter the crop and management practices used.</Text>
+            <View style={[styles.cardIconBox, { backgroundColor: activeColors.primarySubtle }]}>
+              <Ionicons name="construct-outline" size={16} color={activeColors.primary} />
             </View>
+            <Text style={[styles.cardTitle, { color: activeColors.textPrimary }]}>Crop Management</Text>
           </View>
+
+          <Input
+            label="Crop Type"
+            value={formData.Crop_Type}
+            onChangeText={(t) => handleUpdate('Crop_Type', t)}
+            placeholder="e.g. Rice, Wheat"
+          />
+
+          {renderOptionSelector(
+            'Season',
+            ['Kharif', 'Rabi', 'Zaid', 'Whole Year'],
+            formData.Season,
+            (opt) => handleUpdate('Season', opt)
+          )}
+
+          {renderOptionSelector(
+            'Irrigation',
+            ['Drip', 'Sprinkler', 'Canal', 'Rainfed'],
+            formData.Irrigation_Type,
+            (opt) => handleUpdate('Irrigation_Type', opt)
+          )}
 
           <View style={styles.row}>
             <View style={styles.flex1}>
-              <Input label="Crop Type" value={formData.Crop_Type} onChangeText={(t) => handleUpdate('Crop_Type', t)} placeholder="e.g. Rice, Wheat" />
+              {renderOptionSelector(
+                'Fertilizer',
+                ['Yes', 'No'],
+                formData.Fertilizer_Used,
+                (opt) => handleUpdate('Fertilizer_Used', opt)
+              )}
             </View>
-            <View style={{ width: 16 }} />
+            <View style={{ width: 12 }} />
             <View style={styles.flex1}>
-              <Input label="Season" value={formData.Season} onChangeText={(t) => handleUpdate('Season', t)} placeholder="e.g. Kharif, Rabi" />
-            </View>
-          </View>
-          <Input label="Irrigation Type" value={formData.Irrigation_Type} onChangeText={(t) => handleUpdate('Irrigation_Type', t)} placeholder="e.g. Drip, Sprinkler, Rainfed" />
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Input label="Fertilizer Used?" value={formData.Fertilizer_Used} onChangeText={(t) => handleUpdate('Fertilizer_Used', t)} placeholder="Yes / No" />
-            </View>
-            <View style={{ width: 16 }} />
-            <View style={styles.flex1}>
-              <Input label="Pesticide Used?" value={formData.Pesticide_Used} onChangeText={(t) => handleUpdate('Pesticide_Used', t)} placeholder="Yes / No" />
+              {renderOptionSelector(
+                'Pesticide',
+                ['Yes', 'No'],
+                formData.Pesticide_Used,
+                (opt) => handleUpdate('Pesticide_Used', opt)
+              )}
             </View>
           </View>
         </View>
 
         <View style={styles.submitContainer}>
           <Button
-            title="🌱 Predict Crop Yield"
+            title="Calculate Yield"
             onPress={handlePredict}
-            style={{ backgroundColor: colors.primary.DEFAULT }}
+            style={{ height: 50, borderRadius: 14 }}
           />
         </View>
       </View>
@@ -224,19 +335,17 @@ export default function YieldPredictScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: pageBg }]}>
-      {/* Custom light-forced header */}
-      <View style={[styles.customHeader, { backgroundColor: cardBg, borderBottomColor: borderColor }]}>
-        <Text style={[styles.headerTitle, { color: textPrimary }]}>Crop Yield Prediction</Text>
-        <Text style={[styles.headerSubtitle, { color: textSecondary }]}>
-          Estimate expected yield based on your farm, soil, climate, and management conditions.
+    <View style={[styles.container, { backgroundColor: activeColors.background }]}>
+      <View style={[styles.customHeader, { backgroundColor: activeColors.card, borderBottomColor: activeColors.border }]}>
+        <Text style={[styles.headerTitle, { color: activeColors.textPrimary }]}>Yield Predictor</Text>
+        <Text style={[styles.headerSubtitle, { color: activeColors.textSecondary }]}>
+          Estimate expected crop yield per hectare
         </Text>
       </View>
-      
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView
           style={styles.scrollView}
@@ -244,14 +353,10 @@ export default function YieldPredictScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Centered maximum width container for desktop/tablet support */}
           <View style={styles.centerWrapper}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <Loading message="Generating yield prediction..." />
-                <Text style={[styles.loadingSubtext, { color: textSecondary }]}>
-                  Analyzing 19 environmental and soil parameters through our machine learning model...
-                </Text>
+                <Loading message="Calculating yield..." />
               </View>
             ) : (
               <>
@@ -271,102 +376,107 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customHeader: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 30, // rough safe area
-    paddingBottom: 20,
+    paddingHorizontal: 18,
+    paddingTop: Platform.OS === 'ios' ? 48 : 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 6,
+    fontFamily: Fonts.sans,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '400',
+    marginTop: 2,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
-    alignItems: 'center', // centers the inner wrapper
+    paddingBottom: 30,
+    alignItems: 'center',
   },
   centerWrapper: {
     width: '100%',
-    maxWidth: 768, // limits width on desktop/tablet for readability
+    maxWidth: 768,
   },
   formContainer: {
-    paddingBottom: 20,
+    paddingBottom: 16,
     width: '100%',
   },
   card: {
     borderRadius: 16,
     borderWidth: 1,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    padding: 16,
+    marginBottom: 14,
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 8,
   },
-  cardIcon: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  cardHeaderTextContainer: {
-    flex: 1,
+  cardIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 18,
+    fontFamily: Fonts.sans,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 4,
   },
-  cardSubtitle: {
+  optionGroup: {
+    marginVertical: 8,
+  },
+  optionLabel: {
+    fontFamily: Fonts.sans,
     fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  optionRow: {
+    flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 6,
+  },
+  optionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  optionChipText: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '600',
   },
   row: {
     flexDirection: 'row',
-    marginBottom: 0, // input components have their own margin bottom
   },
   flex1: {
     flex: 1,
   },
   submitContainer: {
-    marginTop: 8,
+    marginTop: 4,
     width: '100%',
   },
   loadingContainer: {
     flex: 1,
-    minHeight: 400,
+    minHeight: 250,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  loadingSubtext: {
-    marginTop: 16,
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-  },
   resultContainer: {
-    paddingTop: 10,
+    paddingTop: 8,
     width: '100%',
-  }
+  },
 });

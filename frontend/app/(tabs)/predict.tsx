@@ -4,20 +4,23 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
-import { SoilInput } from '@/components/SoilInput';
+import { NutrientGaugeInput } from '@/components/NutrientGaugeInput';
+import { SoilPresetSelector, SoilPreset } from '@/components/SoilPresetSelector';
+import { FetchLocationButton } from '@/components/FetchLocationButton';
 import { AnimatedCard } from '@/components/AnimatedCard';
-import { colors } from '@/constants/colors';
 import { APP_CONFIG } from '@/constants/config';
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/store/ThemeContext';
-
 import { predictCrop } from '@/services/predictionService';
 import { ErrorMessage } from '@/components/ErrorMessage';
+import { UserLocationResult } from '@/utils/location';
 
 export default function PredictScreen() {
   const router = useRouter();
   const { activeColors } = useTheme();
 
-  // Soil & Climate parameters
+  const [activePresetId, setActivePresetId] = useState<string | undefined>('fertile-loam');
+
   const [nitrogen, setNitrogen] = useState('90');
   const [phosphorus, setPhosphorus] = useState('42');
   const [potassium, setPotassium] = useState('43');
@@ -28,6 +31,23 @@ export default function PredictScreen() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleSelectPreset = (preset: SoilPreset) => {
+    setActivePresetId(preset.id);
+    setNitrogen(preset.values.nitrogen);
+    setPhosphorus(preset.values.phosphorus);
+    setPotassium(preset.values.potassium);
+    setPh(preset.values.ph);
+    setTemperature(preset.values.temperature);
+    setHumidity(preset.values.humidity);
+    setRainfall(preset.values.rainfall);
+  };
+
+  const handleLocationFetched = (loc: UserLocationResult) => {
+    if (loc.temperature !== undefined) setTemperature(loc.temperature.toString());
+    if (loc.humidity !== undefined) setHumidity(loc.humidity.toString());
+    if (loc.rainfall !== undefined) setRainfall(loc.rainfall.toString());
+  };
 
   const handlePredict = async () => {
     try {
@@ -63,138 +83,165 @@ export default function PredictScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
-        <AnimatedCard delay={60}>
+        <AnimatedCard delay={40}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <View style={[styles.headerIconBadge, { backgroundColor: colors.primary.subtle }]}>
-                <Ionicons name="leaf" size={22} color={colors.primary.DEFAULT} />
+              <View style={[styles.headerIconBadge, { backgroundColor: activeColors.primarySubtle }]}>
+                <Ionicons name="leaf-outline" size={22} color={activeColors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.title, { color: activeColors.textPrimary }]}>AI Crop Advisor</Text>
+                <Text style={[styles.title, { color: activeColors.textPrimary }]}>Crop Advisor</Text>
                 <Text style={[styles.subtitle, { color: activeColors.textSecondary }]}>
-                  Find the best crop for your soil & climate
+                  Select parameters to get optimal crop recommendations
                 </Text>
               </View>
             </View>
           </View>
         </AnimatedCard>
 
-        {/* Group 1: 🌱 Soil Nutrients */}
+        {/* Location & Presets Row */}
+        <AnimatedCard delay={60}>
+          <FetchLocationButton onLocationFetched={handleLocationFetched} />
+        </AnimatedCard>
+
+        {/* Quick Soil Presets */}
+        <AnimatedCard delay={80}>
+          <SoilPresetSelector
+            activePresetId={activePresetId}
+            onSelectPreset={handleSelectPreset}
+          />
+        </AnimatedCard>
+
+        {/* Section 1: Soil Nutrients */}
         <AnimatedCard delay={120}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.sectionIconBadge, { backgroundColor: colors.primary.subtle }]}>
-                <Ionicons name="nutrition-outline" size={18} color={colors.primary.DEFAULT} />
+              <View style={[styles.sectionIconBadge, { backgroundColor: activeColors.primarySubtle }]}>
+                <Ionicons name="flask-outline" size={16} color={activeColors.primary} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌱 Soil Nutrients</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>Soil Nutrients</Text>
             </View>
 
-            <SoilInput
+            <NutrientGaugeInput
               label="Nitrogen (N)"
               value={nitrogen}
-              onChangeText={setNitrogen}
-              unit={APP_CONFIG.defaultSoilLimits.nitrogen.unit}
+              onChangeText={(t) => { setActivePresetId(undefined); setNitrogen(t); }}
               min={APP_CONFIG.defaultSoilLimits.nitrogen.min}
               max={APP_CONFIG.defaultSoilLimits.nitrogen.max}
+              unit={APP_CONFIG.defaultSoilLimits.nitrogen.unit}
+              step={5}
               icon="flask-outline"
+              optimalRange={{ min: 40, max: 120 }}
             />
 
-            <SoilInput
+            <NutrientGaugeInput
               label="Phosphorus (P)"
               value={phosphorus}
-              onChangeText={setPhosphorus}
-              unit={APP_CONFIG.defaultSoilLimits.phosphorus.unit}
+              onChangeText={(t) => { setActivePresetId(undefined); setPhosphorus(t); }}
               min={APP_CONFIG.defaultSoilLimits.phosphorus.min}
               max={APP_CONFIG.defaultSoilLimits.phosphorus.max}
-              icon="color-filter-outline"
+              unit={APP_CONFIG.defaultSoilLimits.phosphorus.unit}
+              step={2}
+              icon="options-outline"
+              optimalRange={{ min: 25, max: 80 }}
             />
 
-            <SoilInput
+            <NutrientGaugeInput
               label="Potassium (K)"
               value={potassium}
-              onChangeText={setPotassium}
-              unit={APP_CONFIG.defaultSoilLimits.potassium.unit}
+              onChangeText={(t) => { setActivePresetId(undefined); setPotassium(t); }}
               min={APP_CONFIG.defaultSoilLimits.potassium.min}
               max={APP_CONFIG.defaultSoilLimits.potassium.max}
+              unit={APP_CONFIG.defaultSoilLimits.potassium.unit}
+              step={2}
               icon="sparkles-outline"
+              optimalRange={{ min: 25, max: 85 }}
             />
           </View>
         </AnimatedCard>
 
-        {/* Group 2: 🧪 Soil pH & Chemistry */}
-        <AnimatedCard delay={180}>
+        {/* Section 2: Soil Chemistry */}
+        <AnimatedCard delay={160}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.sectionIconBadge, { backgroundColor: colors.accent.light }]}>
-                <Ionicons name="options-outline" size={18} color={colors.accent.dark} />
+              <View style={[styles.sectionIconBadge, { backgroundColor: activeColors.primarySubtle }]}>
+                <Ionicons name="speedometer-outline" size={16} color={activeColors.primary} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🧪 Soil pH Level</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>Soil pH</Text>
             </View>
 
-            <SoilInput
-              label="Soil pH"
+            <NutrientGaugeInput
+              label="pH Level"
               value={ph}
-              onChangeText={setPh}
-              unit={APP_CONFIG.defaultSoilLimits.ph.unit}
+              onChangeText={(t) => { setActivePresetId(undefined); setPh(t); }}
               min={APP_CONFIG.defaultSoilLimits.ph.min}
               max={APP_CONFIG.defaultSoilLimits.ph.max}
+              unit={APP_CONFIG.defaultSoilLimits.ph.unit}
+              step={0.1}
               icon="speedometer-outline"
+              optimalRange={{ min: 6.0, max: 7.5 }}
             />
           </View>
         </AnimatedCard>
 
-        {/* Group 3: 🌦️ Climate Parameters */}
-        <AnimatedCard delay={240}>
+        {/* Section 3: Weather */}
+        <AnimatedCard delay={200}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.sectionIconBadge, { backgroundColor: '#E3F2FD' }]}>
-                <Ionicons name="partly-sunny-outline" size={18} color="#0288D1" />
+              <View style={[styles.sectionIconBadge, { backgroundColor: activeColors.primarySubtle }]}>
+                <Ionicons name="partly-sunny-outline" size={16} color={activeColors.primary} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌦️ Climate Parameters</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>Climate</Text>
             </View>
 
-            <SoilInput
+            <NutrientGaugeInput
               label="Temperature"
               value={temperature}
-              onChangeText={setTemperature}
-              unit="°C"
+              onChangeText={(t) => { setActivePresetId(undefined); setTemperature(t); }}
               min={10}
               max={50}
+              unit="°C"
+              step={0.5}
               icon="thermometer-outline"
+              optimalRange={{ min: 20, max: 32 }}
             />
 
-            <SoilInput
+            <NutrientGaugeInput
               label="Humidity"
               value={humidity}
-              onChangeText={setHumidity}
-              unit="%"
+              onChangeText={(t) => { setActivePresetId(undefined); setHumidity(t); }}
               min={20}
               max={100}
+              unit="%"
+              step={5}
               icon="water-outline"
+              optimalRange={{ min: 50, max: 85 }}
             />
 
-            <SoilInput
+            <NutrientGaugeInput
               label="Rainfall"
               value={rainfall}
-              onChangeText={setRainfall}
-              unit={APP_CONFIG.defaultSoilLimits.rainfall.unit}
+              onChangeText={(t) => { setActivePresetId(undefined); setRainfall(t); }}
               min={APP_CONFIG.defaultSoilLimits.rainfall.min}
               max={APP_CONFIG.defaultSoilLimits.rainfall.max}
+              unit={APP_CONFIG.defaultSoilLimits.rainfall.unit}
+              step={10}
               icon="rainy-outline"
+              optimalRange={{ min: 80, max: 300 }}
             />
           </View>
         </AnimatedCard>
 
         {error ? (
-          <AnimatedCard delay={280} style={{ marginBottom: 16 }}>
+          <AnimatedCard delay={240} style={{ marginBottom: 16 }}>
             <ErrorMessage message={error} onRetry={handlePredict} />
           </AnimatedCard>
         ) : null}
 
-        {/* Action button */}
-        <AnimatedCard delay={300} style={{ marginBottom: 28 }}>
+        {/* Action Button */}
+        <AnimatedCard delay={260} style={{ marginBottom: 24 }}>
           <Button
-            title={loading ? 'Predicting...' : 'Predict Best Crop'}
+            title={loading ? 'Analyzing...' : 'Recommend Crop'}
             onPress={handlePredict}
             loading={loading}
             disabled={loading}
@@ -211,63 +258,67 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   headerIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontFamily: Fonts.sans,
+    fontSize: 20,
+    fontWeight: '700',
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '400',
+    marginTop: 1,
   },
   card: {
-    padding: 18,
-    borderRadius: 18,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 18,
+    marginBottom: 14,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.03,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 1,
   },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 14,
   },
   sectionIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontFamily: Fonts.sans,
+    fontSize: 15,
     fontWeight: '700',
   },
   submitButton: {
-    height: 52,
+    height: 50,
     borderRadius: 14,
   },
 });

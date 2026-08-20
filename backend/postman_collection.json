@@ -232,6 +232,26 @@
                         "description": "Recommends optimal crop based on soil nutrients (N, P, K), temperature, humidity, pH, and rainfall using an ML model."
                     },
                     "response": []
+                },
+                {
+                    "name": "Crop Yield Prediction ML",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"Crop\": \"Rice\",\n  \"Crop_Year\": 2026,\n  \"Season\": \"Kharif\",\n  \"State\": \"Kerala\",\n  \"Area\": 10.0,\n  \"Annual_Rainfall\": 1200.0\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/predict/crop-yield/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "predict", "crop-yield", ""]
+                        },
+                        "description": "Predicts crop yield in tons/hectare based on crop type, crop year, season, state, cultivated area, and annual rainfall using an ML model."
+                    },
+                    "response": []
                 }
             ]
         },
@@ -451,6 +471,115 @@
                             "path": ["api", "alerts", "1", ""]
                         },
                         "description": "Permanently deletes a price alert by ID."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "7. ML Prediction Pipeline (Combined)",
+            "description": "JWT Authenticated orchestration pipeline that combines crop recommendation, yield prediction, location-based mandi price fetching, and revenue estimating.",
+            "item": [
+                {
+                    "name": "Run Combined Prediction",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"N\": 90,\n  \"P\": 42,\n  \"K\": 43,\n  \"temperature\": 25.5,\n  \"humidity\": 80.0,\n  \"ph\": 6.5,\n  \"rainfall\": 202.0,\n  \"latitude\": 10.05,\n  \"longitude\": 76.62\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/predictions/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "predictions", ""]
+                        },
+                        "description": "Orchestrates crop recommendation and yield prediction, fetches live mandi prices based on user location, estimates expected revenue, and saves to database history."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Prediction History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/predictions/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "predictions", ""]
+                        },
+                        "description": "Retrieves the authenticated user's paginated prediction pipeline history."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Prediction Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/predictions/1/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "predictions", "1", ""]
+                        },
+                        "description": "Fetches detailed inputs, crop/yield outputs, financial revenue estimation, and mandi prices of a single historical prediction."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Prediction from History",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/predictions/1/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "predictions", "1", ""]
+                        },
+                        "description": "Permanently deletes a single prediction run from history."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "8. Crop Catalog",
+            "description": "Crop Library catalog endpoints for detailed agronomic info and categories.",
+            "item": [
+                {
+                    "name": "List Crops",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/crops/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "crops", ""]
+                        },
+                        "description": "Fetches the full agronomic crop catalog directory."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Crop Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/crops/1/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "crops", "1", ""]
+                        },
+                        "description": "Fetches detailed crop agronomic data (optimal NPK, temperature range, description) by ID."
                     },
                     "response": []
                 }

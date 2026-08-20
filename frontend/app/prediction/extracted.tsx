@@ -5,9 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { SoilInput } from '@/components/SoilInput';
+import { FetchLocationButton } from '@/components/FetchLocationButton';
 import { AnimatedCard } from '@/components/AnimatedCard';
-import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
+import { UserLocationResult } from '@/utils/location';
 
 export default function ExtractedScreen() {
   const router = useRouter();
@@ -21,6 +22,10 @@ export default function ExtractedScreen() {
   const [organicCarbon, setOrganicCarbon] = useState('0.75');
   const [rainfall, setRainfall] = useState('202');
 
+  const handleLocationFetched = (loc: UserLocationResult) => {
+    if (loc.rainfall !== undefined) setRainfall(loc.rainfall.toString());
+  };
+
   const handleGenerateRecommendations = () => {
     router.push('/prediction/result');
   };
@@ -32,9 +37,9 @@ export default function ExtractedScreen() {
         {/* Header */}
         <AnimatedCard delay={60}>
           <View style={styles.header}>
-            <View style={[styles.successBadge, { backgroundColor: colors.primary.subtle }]}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.primary.DEFAULT} />
-              <Text style={[styles.successBadgeText, { color: colors.primary.DEFAULT }]}>AI Extraction Complete</Text>
+            <View style={[styles.successBadge, { backgroundColor: activeColors.primarySubtle }]}>
+              <Ionicons name="checkmark-circle" size={16} color={activeColors.primary} />
+              <Text style={[styles.successBadgeText, { color: activeColors.primary }]}>AI Extraction Complete</Text>
             </View>
             <Text style={[styles.title, { color: activeColors.textPrimary }]}>Extracted Soil Parameters</Text>
             <Text style={[styles.subtitle, { color: activeColors.textSecondary }]}>
@@ -47,10 +52,10 @@ export default function ExtractedScreen() {
         <AnimatedCard delay={120}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.sectionIconBadge, { backgroundColor: colors.primary.subtle }]}>
-                <Ionicons name="flask-outline" size={18} color={colors.primary.DEFAULT} />
+              <View style={[styles.sectionIconBadge, { backgroundColor: activeColors.primarySubtle }]}>
+                <Ionicons name="flask-outline" size={18} color={activeColors.primary} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌱 Soil Nutrients (NPK)</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>Soil Nutrients (NPK)</Text>
             </View>
 
             <SoilInput
@@ -65,7 +70,7 @@ export default function ExtractedScreen() {
               value={phosphorus}
               onChangeText={setPhosphorus}
               unit="mg/kg"
-              icon="color-filter-outline"
+              icon="options-outline"
             />
             <SoilInput
               label="Potassium (K)"
@@ -81,10 +86,10 @@ export default function ExtractedScreen() {
         <AnimatedCard delay={180}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.sectionIconBadge, { backgroundColor: colors.accent.light }]}>
-                <Ionicons name="options-outline" size={18} color={colors.accent.dark} />
+              <View style={[styles.sectionIconBadge, { backgroundColor: activeColors.primarySubtle }]}>
+                <Ionicons name="speedometer-outline" size={18} color={activeColors.primary} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🧪 Soil pH & Organic Matter</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>Soil pH & Organic Matter</Text>
             </View>
 
             <SoilInput
@@ -108,11 +113,13 @@ export default function ExtractedScreen() {
         <AnimatedCard delay={240}>
           <View style={[styles.card, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
             <View style={styles.cardHeaderRow}>
-              <View style={[styles.sectionIconBadge, { backgroundColor: '#E3F2FD' }]}>
-                <Ionicons name="partly-sunny-outline" size={18} color="#0288D1" />
+              <View style={[styles.sectionIconBadge, { backgroundColor: activeColors.primarySubtle }]}>
+                <Ionicons name="partly-sunny-outline" size={18} color={activeColors.primary} />
               </View>
-              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>🌦️ Regional Climate Metrics</Text>
+              <Text style={[styles.sectionTitle, { color: activeColors.textPrimary }]}>Regional Climate Metrics</Text>
             </View>
+
+            <FetchLocationButton onLocationFetched={handleLocationFetched} />
 
             <SoilInput
               label="Annual Rainfall"

@@ -25,10 +25,10 @@
         "Production"
     ],
     "metrics": {
-        "r2_score": 0.9728,
-        "mae": 12.4912,
-        "mse": 21824.4183,
-        "rmse": 147.7309
+        "r2_score": 0.1654,
+        "mae": 1.9152,
+        "mse": 4.9254,
+        "rmse": 2.2193
     },
     "random_state": 42
 }

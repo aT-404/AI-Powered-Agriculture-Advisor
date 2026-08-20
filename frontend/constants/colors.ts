@@ -1,53 +1,78 @@
 /**
  * Color Palette Constants
- * Theme colors for the Agriculture / Crop Prediction App
+ * Theme: Dark Green → Emerald Gradient + Pure White System
+ * Glassmorphic Translucent Cards & Gradient Accents
  */
 
 export const colors = {
   primary: {
-    DEFAULT: '#2E7D32', // Deep foliage green
-    light: '#4CAF50',
-    dark: '#1B5E20',
-    subtle: '#E8F5E9',
+    DEFAULT: '#059669', // Emerald Green
+    emerald: '#10B981', // Vibrant Emerald
+    darkGreen: '#064E3B', // Rich Deep Dark Green
+    light: '#34D399', // Mint Light
+    dark: '#047857', // Deep Emerald
+    subtle: 'rgba(16, 185, 129, 0.12)',
   },
-  // Semantic component colors (forces contrast)
   primaryCard: {
-    background: '#2E7D32',
+    background: 'linear-gradient(135deg, #064E3B 0%, #059669 50%, #10B981 100%)',
     text: '#FFFFFF',
-    textMuted: 'rgba(255, 255, 255, 0.85)',
+    textMuted: 'rgba(255, 255, 255, 0.90)',
   },
   secondary: {
-    DEFAULT: '#8D6E63', // Earth / Soil brown
-    light: '#BCAAA4',
-    dark: '#5D4037',
-    subtle: '#EFEBE9',
+    DEFAULT: '#047857',
+    light: '#A7F3D0',
+    dark: '#022C22',
+    subtle: 'rgba(5, 150, 105, 0.10)',
   },
   accent: {
-    DEFAULT: '#F9A825', // Harvest Gold / Amber
-    light: '#FFF59D',
-    dark: '#F57F17',
+    DEFAULT: '#10B981',
+    light: '#6EE7B7',
+    dark: '#047857',
   },
   status: {
-    success: '#2E7D32',
-    warning: '#ED6C02',
-    error: '#D32F2F',
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
     info: '#0288D1',
+  },
+  // Light Mode Colors (Crisp White + Emerald & Dark Green Accent)
+  light: {
+    primary: '#059669',
+    primarySubtle: 'rgba(16, 185, 129, 0.12)',
+    background: '#F4F9F6',
+    card: 'rgba(255, 255, 255, 0.90)',
+    border: 'rgba(16, 185, 129, 0.22)',
+    textPrimary: '#064E3B',
+    textSecondary: '#374151',
+    textMuted: '#6B7280',
+    statusSuccess: '#10B981',
   },
   neutral: {
     white: '#FFFFFF',
-    background: '#F8FAF8',
-    card: '#FFFFFF',
-    border: '#E0E6E0',
-    textPrimary: '#1E293B',
-    textSecondary: '#64748B',
-    textMuted: '#94A3B8',
+    background: '#F4F9F6',
+    card: 'rgba(255, 255, 255, 0.90)',
+    border: 'rgba(16, 185, 129, 0.22)',
+    textPrimary: '#064E3B',
+    textSecondary: '#374151',
+    textMuted: '#6B7280',
   },
+  // Dark Mode Colors (Deep Midnight Dark Green + Vibrant Emerald Glow)
   dark: {
-    background: '#121811',
-    card: '#1E261D',
-    border: '#2E3D2D',
-    textPrimary: '#F1F5F9',
-    textSecondary: '#94A3B8',
+    primary: '#10B981',
+    primarySubtle: 'rgba(16, 185, 129, 0.18)',
+    background: '#022C22',
+    card: 'rgba(6, 44, 34, 0.80)',
+    border: 'rgba(16, 185, 129, 0.35)',
+    textPrimary: '#ECFDF5',
+    textSecondary: '#A7F3D0',
+    textMuted: '#6EE7B7',
+    statusSuccess: '#10B981',
+  },
+  neon: {
+    emerald: '#10B981',
+    darkGreen: '#064E3B',
+    cyan: '#06B6D4',
+    darkBg: '#022C22',
   },
 };
 

@@ -8,6 +8,7 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { WeatherResponse, DailyForecast } from '@/types/weather';
@@ -16,6 +17,7 @@ import SkeletonLoader from './SkeletonLoader';
 import { colors } from '@/constants/colors';
 import { useTheme } from '@/store/ThemeContext';
 import { formatTemperature } from '@/utils/formatters';
+import { getCurrentUserLocation } from '@/utils/location';
 
 export interface WeatherCardProps {
   initialLocation?: string;
@@ -45,16 +47,17 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   const [currentLocation, setCurrentLocation] = useState(initialLocation);
   const [weatherData, setWeatherData] = useState<WeatherResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForecast, setShowForecast] = useState(false);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadWeather = async (loc: string) => {
+  const loadWeather = async (loc?: string, coords?: { latitude: number; longitude: number }) => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: apiError } = await fetchWeather(loc);
+      const { data, error: apiError } = await fetchWeather(loc, coords);
       if (apiError || !data) {
         setError(apiError || 'Failed to fetch weather data');
       } else {
@@ -72,6 +75,20 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   useEffect(() => {
     loadWeather(currentLocation);
   }, []);
+
+  const handleFetchGPSLocation = async () => {
+    try {
+      setLocating(true);
+      setError(null);
+      const locRes = await getCurrentUserLocation();
+      setSearchModalVisible(false);
+      await loadWeather(undefined, { latitude: locRes.latitude, longitude: locRes.longitude });
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch GPS location');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const handleSelectLocation = (loc: string) => {
     setSearchModalVisible(false);
@@ -117,8 +134,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
           onPress={() => setSearchModalVisible(true)}
           activeOpacity={0.7}
         >
-          <View style={[styles.locationBadge, { backgroundColor: colors.primary.subtle }]}>
-            <Ionicons name="location" size={16} color={colors.primary.DEFAULT} />
+          <View style={[styles.locationBadge, { backgroundColor: activeColors.primarySubtle }]}>
+            <Ionicons name="location" size={16} color={activeColors.primary} />
           </View>
           <View style={{ marginLeft: 8 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -137,14 +154,18 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
         <TouchableOpacity
           style={[styles.refreshBtn, { backgroundColor: isDark ? '#2A2A2A' : '#F4F6F8' }]}
-          onPress={() => loadWeather(currentLocation)}
-          disabled={loading}
+          onPress={handleFetchGPSLocation}
+          disabled={loading || locating}
         >
-          <Ionicons
-            name="refresh-outline"
-            size={16}
-            color={activeColors.textSecondary}
-          />
+          {locating ? (
+            <ActivityIndicator size="small" color={activeColors.primary} />
+          ) : (
+            <Ionicons
+              name="navigate-outline"
+              size={16}
+              color={activeColors.primary}
+            />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -170,7 +191,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
           <Ionicons name="alert-circle-outline" size={24} color={colors.status.error} />
           <Text style={[styles.errorText, { color: colors.status.error }]}>{error}</Text>
           <TouchableOpacity
-            style={[styles.retryBtn, { backgroundColor: colors.primary.DEFAULT }]}
+            style={[styles.retryBtn, { backgroundColor: activeColors.primary }]}
             onPress={() => loadWeather(currentLocation)}
           >
             <Text style={styles.retryBtnText}>Retry</Text>
@@ -193,7 +214,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
               <Ionicons
                 name={(current.icon as any) || 'partly-sunny-outline'}
                 size={48}
-                color={colors.accent.DEFAULT}
+                color={activeColors.primary}
               />
               <Text style={[styles.conditionText, { color: activeColors.textPrimary }]}>
                 {current.condition}
@@ -201,7 +222,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             </View>
           </View>
 
-          {/* ── Metrics Grid (Humidity, Wind, Rain, Weather Code) ─────────── */}
+          {/* ── Metrics Grid ─────────────────────────── */}
           <View style={[styles.metricsGrid, { borderTopColor: activeColors.border }]}>
             <View style={styles.metricItem}>
               <View style={[styles.metricIconWrap, { backgroundColor: '#E3F2FD' }]}>
@@ -241,15 +262,15 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             activeOpacity={0.8}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="calendar-outline" size={16} color={colors.primary.DEFAULT} />
-              <Text style={[styles.forecastToggleText, { color: colors.primary.DEFAULT }]}>
+              <Ionicons name="calendar-outline" size={16} color={activeColors.primary} />
+              <Text style={[styles.forecastToggleText, { color: activeColors.primary }]}>
                 {showForecast ? 'Hide 7-Day Forecast' : 'View 7-Day Agricultural Forecast'}
               </Text>
             </View>
             <Ionicons
               name={showForecast ? 'chevron-up' : 'chevron-down'}
               size={16}
-              color={colors.primary.DEFAULT}
+              color={activeColors.primary}
             />
           </TouchableOpacity>
 
@@ -271,7 +292,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                       styles.forecastDayCard,
                       {
                         backgroundColor: isDark ? '#222222' : '#FFFFFF',
-                        borderColor: index === 0 ? colors.primary.DEFAULT : activeColors.border,
+                        borderColor: index === 0 ? activeColors.primary : activeColors.border,
                         borderWidth: index === 0 ? 1.5 : 1,
                       },
                     ]}
@@ -283,7 +304,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                     <Ionicons
                       name={(day.icon as any) || 'partly-sunny-outline'}
                       size={26}
-                      color={colors.accent.DEFAULT}
+                      color={activeColors.primary}
                       style={{ marginVertical: 6 }}
                     />
 
@@ -358,11 +379,10 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                 onChangeText={setSearchQuery}
                 onSubmitEditing={handleSearchSubmit}
                 returnKeyType="search"
-                autoFocus
               />
               {searchQuery ? (
                 <TouchableOpacity onPress={handleSearchSubmit}>
-                  <Text style={{ color: colors.primary.DEFAULT, fontWeight: '700' }}>Search</Text>
+                  <Text style={{ color: activeColors.primary, fontWeight: '700' }}>Search</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -370,7 +390,39 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             <Text style={[styles.popularTitle, { color: activeColors.textSecondary }]}>
               Popular Agricultural Locations
             </Text>
+            
             <View style={styles.popularWrap}>
+              {/* 📍 Current Location Chip as 1st Chip in list */}
+              <TouchableOpacity
+                style={[
+                  styles.popularChip,
+                  {
+                    backgroundColor: activeColors.primarySubtle,
+                    borderColor: activeColors.primary,
+                    borderWidth: 1.5,
+                  },
+                ]}
+                onPress={handleFetchGPSLocation}
+                disabled={locating}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color={activeColors.primary} />
+                ) : (
+                  <Ionicons name="navigate-outline" size={13} color={activeColors.primary} />
+                )}
+                <Text
+                  style={[
+                    styles.popularChipText,
+                    {
+                      color: activeColors.primary,
+                      fontWeight: '700',
+                    },
+                  ]}
+                >
+                  {locating ? 'Locating...' : 'Current Location'}
+                </Text>
+              </TouchableOpacity>
+
               {POPULAR_LOCATIONS.map((loc) => (
                 <TouchableOpacity
                   key={loc}
@@ -379,13 +431,13 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                     {
                       backgroundColor:
                         currentLocation.toLowerCase() === loc.toLowerCase()
-                          ? colors.primary.subtle
+                          ? activeColors.primarySubtle
                           : isDark
                           ? '#2A2A2A'
                           : '#F0F2F5',
                       borderColor:
                         currentLocation.toLowerCase() === loc.toLowerCase()
-                          ? colors.primary.DEFAULT
+                          ? activeColors.primary
                           : 'transparent',
                     },
                   ]}
@@ -396,7 +448,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                     size={13}
                     color={
                       currentLocation.toLowerCase() === loc.toLowerCase()
-                        ? colors.primary.DEFAULT
+                        ? activeColors.primary
                         : activeColors.textSecondary
                     }
                   />
@@ -406,7 +458,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
                       {
                         color:
                           currentLocation.toLowerCase() === loc.toLowerCase()
-                            ? colors.primary.DEFAULT
+                            ? activeColors.primary
                             : activeColors.textPrimary,
                         fontWeight:
                           currentLocation.toLowerCase() === loc.toLowerCase() ? '700' : '500',
@@ -427,20 +479,17 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
+    padding: 16,
     borderRadius: 20,
-    padding: 18,
     borderWidth: 1,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    backdropFilter: 'blur(20px)' as any,
+    WebkitBackdropFilter: 'blur(20px)' as any,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -448,39 +497,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationBadge: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cityName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   stateName: {
     fontSize: 11,
     marginTop: 1,
   },
   refreshBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   loadingContainer: {
-    paddingVertical: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 13,
+    paddingVertical: 10,
   },
   errorContainer: {
-    paddingVertical: 18,
     alignItems: 'center',
+    paddingVertical: 20,
     gap: 8,
   },
   errorText: {
@@ -489,24 +532,24 @@ const styles = StyleSheet.create({
   },
   retryBtn: {
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
     marginTop: 4,
   },
   retryBtnText: {
     color: '#FFF',
-    fontSize: 12,
     fontWeight: '700',
+    fontSize: 13,
   },
   mainRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 8,
   },
   tempText: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 44,
+    fontWeight: '900',
     letterSpacing: -1,
   },
   feelsLikeText: {
@@ -518,35 +561,35 @@ const styles = StyleSheet.create({
   },
   conditionText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 4,
   },
   metricsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 14,
+    justifyContent: 'space-around',
     paddingTop: 12,
+    marginTop: 12,
     borderTopWidth: 1,
   },
   metricItem: {
     alignItems: 'center',
-    flex: 1,
   },
   metricIconWrap: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   metricLabel: {
-    fontSize: 11,
-    marginBottom: 2,
+    fontSize: 10,
+    fontWeight: '600',
   },
   metricValue: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
+    marginTop: 2,
   },
   forecastToggleBtn: {
     flexDirection: 'row',
@@ -617,15 +660,19 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     paddingHorizontal: 20,
+    backdropFilter: 'blur(16px)' as any,
+    WebkitBackdropFilter: 'blur(16px)' as any,
   },
   modalContent: {
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    maxHeight: 480,
+    maxHeight: 520,
+    backdropFilter: 'blur(24px)' as any,
+    WebkitBackdropFilter: 'blur(24px)' as any,
   },
   modalHeader: {
     flexDirection: 'row',

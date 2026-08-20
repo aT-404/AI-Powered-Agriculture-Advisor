@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     HealthCheckView,
     CropPredictionView,
+    CropYieldPredictionView,
     WeatherView,
     MarketFiltersView,
     MarketPricesView,
@@ -16,6 +17,8 @@ urlpatterns = [
     # Health & Prediction
     path('health/', HealthCheckView.as_view(), name='health-check'),
     path('predict/crop/', CropPredictionView.as_view(), name='crop-predict'),
+    path('predict/crop-yield/', CropYieldPredictionView.as_view(), name='crop-yield'),
+
 
     # Weather (Open-Meteo)
     path('weather/', WeatherView.as_view(), name='weather'),

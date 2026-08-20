@@ -13,6 +13,7 @@ django.setup()
 from prediction.views import (
     HealthCheckView,
     CropPredictionView,
+    CropYieldPredictionView,
     WeatherView,
     MarketFiltersView,
     MarketPricesView,
@@ -50,6 +51,20 @@ def run_tests():
     assert pred_resp.status_code == 200, f"Crop prediction failed: {pred_resp.status_code}"
     rec_crop = pred_resp.data.get('primaryRecommendation', {}).get('cropName', 'Unknown')
     print(f"[PASS] 1b. Crop Prediction ML: Recommended '{rec_crop}' (Confidence: {pred_resp.data.get('primaryRecommendation', {}).get('confidence')})")
+
+    # 1c. ML Yield Prediction
+    yield_req = factory.post('/api/predict/crop-yield/', {
+        "Crop": "Rice",
+        "Crop_Year": 2026,
+        "Season": "Kharif",
+        "State": "Kerala",
+        "Area": 10.0,
+        "Annual_Rainfall": 1200.0
+    }, format='json')
+    yield_resp = CropYieldPredictionView.as_view()(yield_req)
+    assert yield_resp.status_code == 200, f"Yield prediction failed: {yield_resp.status_code}"
+    predicted_yield = yield_resp.data.get('predicted_yield')
+    print(f"[PASS] 1c. Yield Prediction ML: Predicted Yield: {predicted_yield} {yield_resp.data.get('unit')}")
 
     # 2. Weather View (Open-Meteo)
     req = factory.get('/api/weather/', {'location': 'Kothamangalam'})
