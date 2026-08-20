@@ -41,3 +41,35 @@ class PriceAlert(models.Model):
     def __str__(self):
         cond_sym = ">=" if self.condition == 'GTE' else "<="
         return f"{self.commodity} ({self.market}) {cond_sym} ₹{self.target_price}"
+
+
+class PredictionHistory(models.Model):
+    """
+    Model representing a saved crop prediction recommendation for a farmer.
+    """
+    user_identifier = models.CharField(
+        max_length=120,
+        default='default_farmer',
+        db_index=True,
+        help_text="User ID or device token for scoped history."
+    )
+    primary_crop = models.CharField(max_length=100, help_text="Top recommended crop name")
+    confidence = models.FloatField(help_text="Model confidence score (0.0 to 1.0)")
+    nitrogen = models.FloatField(help_text="Nitrogen (N) in kg/ha")
+    phosphorus = models.FloatField(help_text="Phosphorus (P) in kg/ha")
+    potassium = models.FloatField(help_text="Potassium (K) in kg/ha")
+    ph = models.FloatField(help_text="Soil pH")
+    temperature = models.FloatField(default=25.0, help_text="Temperature in Celsius")
+    humidity = models.FloatField(default=80.0, help_text="Relative humidity %")
+    rainfall = models.FloatField(default=200.0, help_text="Rainfall in mm")
+    top_recommendations = models.JSONField(default=list, blank=True, help_text="Ranked alternative crop recommendations")
+    location_name = models.CharField(max_length=150, blank=True, default='', help_text="Farm plot or city name")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Prediction History"
+        verbose_name_plural = "Prediction Histories"
+
+    def __str__(self):
+        return f"{self.primary_crop} ({self.confidence:.0%}) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"

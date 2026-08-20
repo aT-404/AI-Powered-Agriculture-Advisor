@@ -1,0 +1,34 @@
+{
+    "model_type": "GradientBoostingRegressor",
+    "target": "Yield",
+    "features": [
+        "Crop",
+        "Crop_Year",
+        "Season",
+        "State",
+        "Area",
+        "Annual_Rainfall"
+    ],
+    "categorical_features": [
+        "Crop",
+        "Season",
+        "State"
+    ],
+    "numerical_features": [
+        "Crop_Year",
+        "Area",
+        "Annual_Rainfall"
+    ],
+    "excluded_features": [
+        "Fertilizer",
+        "Pesticide",
+        "Production"
+    ],
+    "metrics": {
+        "r2_score": 0.9728,
+        "mae": 12.4912,
+        "mse": 21824.4183,
+        "rmse": 147.7309
+    },
+    "random_state": 42
+}

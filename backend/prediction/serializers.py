@@ -111,3 +111,47 @@ class CropYieldPredictionSerializer(serializers.Serializer):
     Irrigation_Type = serializers.CharField(required=True)
     Fertilizer_Used = serializers.CharField(required=True)
     Pesticide_Used = serializers.CharField(required=True)
+
+
+class PredictionHistorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for saved crop prediction history records.
+    """
+    class Meta:
+        from .models import PredictionHistory
+        model = PredictionHistory
+        fields = [
+            'id',
+            'user_identifier',
+            'primary_crop',
+            'confidence',
+            'nitrogen',
+            'phosphorus',
+            'potassium',
+            'ph',
+            'temperature',
+            'humidity',
+            'rainfall',
+            'top_recommendations',
+            'location_name',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
+class UserRegistrationSerializer(serializers.Serializer):
+    """
+    Serializer for user registration.
+    """
+    name = serializers.CharField(max_length=150, required=True)
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(min_length=6, write_only=True, required=True)
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+
+
+class UserLoginSerializer(serializers.Serializer):
+    """
+    Serializer for user login.
+    """
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)

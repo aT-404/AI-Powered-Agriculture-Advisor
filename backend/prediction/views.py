@@ -6,8 +6,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 
-from .models import PriceAlert
+from .models import PriceAlert, PredictionHistory
 from .serializers import (
     CropPredictionSerializer,
     WeatherQuerySerializer,
@@ -16,6 +18,9 @@ from .serializers import (
     PriceAlertSerializer,
     PriceAlertCreateSerializer,
     CropYieldPredictionSerializer,
+    PredictionHistorySerializer,
+    UserRegistrationSerializer,
+    UserLoginSerializer,
 )
 from services.weather_service import get_weather_for_location
 from services.market_service import market_service
@@ -132,6 +137,29 @@ class CropPredictionView(APIView):
                 ph=data['ph'],
                 rainfall=data['rainfall']
             )
+
+            # Persist prediction to Supabase database history
+            user_id = request.data.get('user_identifier', 'default_farmer')
+            location_name = request.data.get('location_name', '')
+            try:
+                history_rec = PredictionHistory.objects.create(
+                    user_identifier=user_id,
+                    primary_crop=result.get('recommended_crop', 'Unknown'),
+                    confidence=result.get('confidence') or 0.0,
+                    nitrogen=data['N'],
+                    phosphorus=data['P'],
+                    potassium=data['K'],
+                    ph=data['ph'],
+                    temperature=data['temperature'],
+                    humidity=data['humidity'],
+                    rainfall=data['rainfall'],
+                    top_recommendations=result.get('top_recommendations', []),
+                    location_name=location_name
+                )
+                result['history_id'] = history_rec.id
+            except Exception as hist_err:
+                logger.warning("Could not save prediction history: %s", hist_err)
+
             return Response(result, status=status.HTTP_200_OK)
         except Exception as exc:
             logger.exception("Error occurred during ML crop prediction: %s", exc)
@@ -175,11 +203,21 @@ class VisionDiagnosisView(APIView):
     Accepts an uploaded image of a crop and uses Gemini Vision to diagnose diseases.
     """
     def post(self, request):
-        if 'image' not in request.FILES:
-            return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
-            
         image_file = request.FILES['image']
         
+        # Validate MIME type and file size
+        allowed_mimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+        if hasattr(image_file, 'content_type') and image_file.content_type not in allowed_mimes:
+            return Response(
+                {"error": f"Invalid file type '{image_file.content_type}'. Only JPEG, PNG, and WebP images are supported."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if image_file.size > 10 * 1024 * 1024:
+            return Response(
+                {"error": "Image file exceeds maximum allowable size of 10MB."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Save temporarily
         temp_dir = tempfile.gettempdir()
         temp_path = os.path.join(temp_dir, image_file.name)
@@ -409,3 +447,259 @@ class PriceAlertCheckView(APIView):
             "evaluated_count": len(results),
             "results": results
         }, status=status.HTTP_200_OK)
+
+
+# ==============================================================================
+# Prediction History Views
+# ==============================================================================
+
+class PredictionHistoryListView(APIView):
+    """
+    List prediction history for the authenticated user / user identifier.
+    """
+    def get(self, request):
+        user_id = request.query_params.get('user_identifier', 'default_farmer')
+        histories = PredictionHistory.objects.filter(user_identifier=user_id)
+        serializer = PredictionHistorySerializer(histories, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PredictionHistoryDetailView(APIView):
+    """
+    Retrieve or delete an individual prediction history record.
+    """
+    def get(self, request, pk):
+        history = get_object_or_404(PredictionHistory, pk=pk)
+        return Response(PredictionHistorySerializer(history).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        history = get_object_or_404(PredictionHistory, pk=pk)
+        history.delete()
+        return Response({"message": "Prediction history deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+# ==============================================================================
+# Authentication Views
+# ==============================================================================
+
+class UserRegistrationView(APIView):
+    """
+    Register a new farmer account.
+    """
+    def post(self, request):
+        serializer = UserRegistrationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+
+        if User.objects.filter(username=data['email']).exists() or User.objects.filter(email=data['email']).exists():
+            return Response({"error": "An account with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(
+            username=data['email'],
+            email=data['email'],
+            password=data['password'],
+            first_name=data.get('name', '')
+        )
+        return Response({
+            "user": {
+                "id": str(user.id),
+                "name": user.first_name or user.username,
+                "email": user.email,
+                "role": "farmer"
+            },
+            "token": f"token-{user.id}-{user.username}"
+        }, status=status.HTTP_201_CREATED)
+
+
+class UserLoginView(APIView):
+    """
+    Authenticate farmer credentials and return profile & session token.
+    """
+    def post(self, request):
+        serializer = UserLoginSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+
+        user = authenticate(username=data['email'], password=data['password'])
+        if user is None:
+            try:
+                u = User.objects.get(email=data['email'])
+                if u.check_password(data['password']):
+                    user = u
+            except User.DoesNotExist:
+                pass
+
+        if user is None:
+            return Response({"error": "Invalid email or password."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({
+            "user": {
+                "id": str(user.id),
+                "name": user.first_name or user.username,
+                "email": user.email,
+                "role": "farmer"
+            },
+            "token": f"token-{user.id}-{user.username}"
+        }, status=status.HTTP_200_OK)
+
+
+class UserProfileView(APIView):
+    """
+    Get current logged in farmer profile.
+    """
+    def get(self, request):
+        email = request.query_params.get('email')
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                return Response({
+                    "id": str(user.id),
+                    "name": user.first_name or user.username,
+                    "email": user.email,
+                    "role": "farmer"
+                })
+            except User.DoesNotExist:
+                pass
+        return Response({
+            "id": "1",
+            "name": "Demo Farmer",
+            "email": "farmer@example.com",
+            "role": "farmer"
+        }, status=status.HTTP_200_OK)
+
+
+# ==============================================================================
+# Crop Catalog Views
+# ==============================================================================
+
+CROP_CATALOG = [
+    {
+        "id": "crop-rice",
+        "name": "Rice (Paddy)",
+        "category": "Cereals",
+        "scientificName": "Oryza sativa",
+        "idealSoil": "Clayey / Alluvial",
+        "phRange": "5.5 - 7.0",
+        "waterRequirement": "High (1200-2000 mm)",
+        "growingSeason": "Kharif (June - Nov)",
+        "durationDays": "120 - 150 days",
+        "npkRatio": "80-120 : 40-60 : 40-60",
+        "commonDiseases": ["Blast", "Sheath Blight", "Bacterial Leaf Streak"],
+        "description": "Primary staple food crop grown extensively across humid subtropical regions with abundant water availability."
+    },
+    {
+        "id": "crop-wheat",
+        "name": "Wheat",
+        "category": "Cereals",
+        "scientificName": "Triticum aestivum",
+        "idealSoil": "Loamy / Well-drained",
+        "phRange": "6.0 - 7.5",
+        "waterRequirement": "Moderate (450-650 mm)",
+        "growingSeason": "Rabi (Oct - April)",
+        "durationDays": "110 - 140 days",
+        "npkRatio": "100-120 : 50-60 : 40-50",
+        "commonDiseases": ["Rust (Brown, Yellow, Black)", "Powdery Mildew", "Loose Smut"],
+        "description": "Crucial rabi cereal crop requiring cool winter temperatures and dry sunny ripening periods."
+    },
+    {
+        "id": "crop-maize",
+        "name": "Maize (Corn)",
+        "category": "Cereals",
+        "scientificName": "Zea mays",
+        "idealSoil": "Deep Loam / Black Soil",
+        "phRange": "5.8 - 7.2",
+        "waterRequirement": "Moderate (500-800 mm)",
+        "growingSeason": "Kharif / Rabi",
+        "durationDays": "90 - 110 days",
+        "npkRatio": "100-120 : 60 : 40-50",
+        "commonDiseases": ["Downy Mildew", "Leaf Blight", "Stalk Rot"],
+        "description": "Highly versatile cereal used for grain, fodder, and industrial starch processing."
+    },
+    {
+        "id": "crop-cotton",
+        "name": "Cotton",
+        "category": "Fibers",
+        "scientificName": "Gossypium hirsutum",
+        "idealSoil": "Deep Black / Alluvial",
+        "phRange": "6.0 - 8.0",
+        "waterRequirement": "Moderate (700-1200 mm)",
+        "growingSeason": "Kharif (May - Dec)",
+        "durationDays": "150 - 180 days",
+        "npkRatio": "100-120 : 50-60 : 50-60",
+        "commonDiseases": ["Bollworm", "Bacterial Blight", "Grey Mildew"],
+        "description": "Major commercial fiber crop thriving in warm climates with high sunshine hours."
+    },
+    {
+        "id": "crop-tomato",
+        "name": "Tomato",
+        "category": "Vegetables",
+        "scientificName": "Solanum lycopersicum",
+        "idealSoil": "Sandy Loam / Loamy",
+        "phRange": "6.0 - 6.8",
+        "waterRequirement": "Moderate (600-800 mm)",
+        "growingSeason": "Whole Year / Winter",
+        "durationDays": "90 - 120 days",
+        "npkRatio": "100-150 : 60-80 : 80-100",
+        "commonDiseases": ["Early Blight", "Late Blight", "Tomato Yellow Leaf Curl Virus"],
+        "description": "High-value horticulture crop demanding balanced nutrition and disease protection."
+    },
+    {
+        "id": "crop-potato",
+        "name": "Potato",
+        "category": "Tubers",
+        "scientificName": "Solanum tuberosum",
+        "idealSoil": "Loose Sandy Loam",
+        "phRange": "5.2 - 6.4",
+        "waterRequirement": "Moderate (500-700 mm)",
+        "growingSeason": "Rabi (Oct - Feb)",
+        "durationDays": "90 - 110 days",
+        "npkRatio": "120-150 : 80-100 : 100-120",
+        "commonDiseases": ["Late Blight", "Scab", "Black Scurf"],
+        "description": "Leading edible tuber crop requiring cool nights and loose soil for tuber expansion."
+    },
+    {
+        "id": "crop-sugarcane",
+        "name": "Sugarcane",
+        "category": "Cash Crops",
+        "scientificName": "Saccharum officinarum",
+        "idealSoil": "Deep Fertile Alluvial / Clay Loam",
+        "phRange": "6.5 - 7.5",
+        "waterRequirement": "Very High (1500-2500 mm)",
+        "growingSeason": "Annual / Whole Year",
+        "durationDays": "300 - 360 days",
+        "npkRatio": "150-250 : 60-80 : 60-100",
+        "commonDiseases": ["Red Rot", "Smut", "Wilt"],
+        "description": "Major perennial commercial crop utilized for sugar, bioethanol, and jaggery production."
+    }
+]
+
+class CropCatalogListView(APIView):
+    """
+    List available crops with optional category filter or query.
+    """
+    def get(self, request):
+        category = request.query_params.get('category')
+        query = request.query_params.get('q', '').lower()
+        results = CROP_CATALOG
+        if category:
+            results = [c for c in results if c['category'].lower() == category.lower()]
+        if query:
+            results = [c for c in results if query in c['name'].lower() or query in c['description'].lower()]
+        return Response(results, status=status.HTTP_200_OK)
+
+
+class CropCatalogDetailView(APIView):
+    """
+    Get detailed agronomic guide for a specific crop.
+    """
+    def get(self, request, crop_id):
+        crop = next(
+            (c for c in CROP_CATALOG if c['id'].lower() == crop_id.lower() or c['id'].replace('crop-', '').lower() == crop_id.lower()),
+            None
+        )
+        if crop:
+            return Response(crop, status=status.HTTP_200_OK)
+        return Response({"error": f"Crop '{crop_id}' not found in catalog."}, status=status.HTTP_404_NOT_FOUND)
+

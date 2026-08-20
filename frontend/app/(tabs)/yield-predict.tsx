@@ -216,7 +216,6 @@ export default function YieldPredictScreen() {
           <Button
             title="🌱 Predict Crop Yield"
             onPress={handlePredict}
-            size="large"
             style={{ backgroundColor: colors.primary.DEFAULT }}
           />
         </View>
@@ -249,7 +248,7 @@ export default function YieldPredictScreen() {
           <View style={styles.centerWrapper}>
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <Loading text="Generating yield prediction..." />
+                <Loading message="Generating yield prediction..." />
                 <Text style={[styles.loadingSubtext, { color: textSecondary }]}>
                   Analyzing 19 environmental and soil parameters through our machine learning model...
                 </Text>

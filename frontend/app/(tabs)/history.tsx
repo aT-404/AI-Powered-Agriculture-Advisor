@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,44 +8,45 @@ import { AnimatedCard } from '@/components/AnimatedCard';
 import { colors } from '@/constants/colors';
 import { PredictionHistoryItem } from '@/types/prediction';
 import { useTheme } from '@/store/ThemeContext';
-
-const MOCK_HISTORY: PredictionHistoryItem[] = [
-  {
-    id: 'hist-1',
-    date: new Date().toISOString(),
-    primaryCropName: 'Rice (Paddy)',
-    confidence: 0.94,
-    locationName: 'North Field - Plot A',
-  },
-  {
-    id: 'hist-2',
-    date: new Date(Date.now() - 86400000 * 3).toISOString(),
-    primaryCropName: 'Maize (Corn)',
-    confidence: 0.88,
-    locationName: 'East Field - Plot B',
-  },
-  {
-    id: 'hist-3',
-    date: new Date(Date.now() - 86400000 * 7).toISOString(),
-    primaryCropName: 'Wheat (Winter)',
-    confidence: 0.82,
-    locationName: 'South Field - Plot C',
-  },
-  {
-    id: 'hist-4',
-    date: new Date(Date.now() - 86400000 * 14).toISOString(),
-    primaryCropName: 'Cotton',
-    confidence: 0.91,
-    locationName: 'West Field - Plot D',
-  },
-];
+import { getPredictionHistory } from '@/services/predictionService';
 
 export default function HistoryScreen() {
   const router = useRouter();
   const { activeColors } = useTheme();
   const [filter, setFilter] = useState<'all' | 'recent'>('all');
+  const [historyList, setHistoryList] = useState<PredictionHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const displayedHistory = filter === 'recent' ? MOCK_HISTORY.slice(0, 2) : MOCK_HISTORY;
+  const loadHistory = useCallback(async () => {
+    try {
+      const data = await getPredictionHistory();
+      setHistoryList(data);
+    } catch (err) {
+      console.error('[HistoryScreen] Failed to load prediction history:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadHistory();
+  };
+
+  const displayedHistory = filter === 'recent' ? historyList.slice(0, 3) : historyList;
+
+  // Compute dynamic stats
+  const totalCount = historyList.length;
+  const avgMatch = totalCount > 0
+    ? Math.round((historyList.reduce((acc, cur) => acc + (cur.confidence || 0), 0) / totalCount) * 100)
+    : 0;
+  const topCrop = totalCount > 0 ? historyList[0].primaryCropName : 'None';
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: activeColors.background }]} edges={['top', 'bottom']}>
@@ -54,6 +55,7 @@ export default function HistoryScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary.DEFAULT]} />}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             {/* Header */}
@@ -79,17 +81,17 @@ export default function HistoryScreen() {
             <AnimatedCard delay={120}>
               <View style={[styles.statsCard, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: colors.primary.DEFAULT }]}>4</Text>
+                  <Text style={[styles.statValue, { color: colors.primary.DEFAULT }]}>{totalCount}</Text>
                   <Text style={[styles.statLabel, { color: activeColors.textSecondary }]}>Tests Done</Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: activeColors.border }]} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: colors.primary.DEFAULT }]}>89%</Text>
+                  <Text style={[styles.statValue, { color: colors.primary.DEFAULT }]}>{avgMatch > 0 ? `${avgMatch}%` : '--'}</Text>
                   <Text style={[styles.statLabel, { color: activeColors.textSecondary }]}>Avg Match</Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: activeColors.border }]} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: colors.primary.DEFAULT }]}>Rice</Text>
+                  <Text style={[styles.statValue, { color: colors.primary.DEFAULT }]}>{topCrop}</Text>
                   <Text style={[styles.statLabel, { color: activeColors.textSecondary }]}>Top Crop</Text>
                 </View>
               </View>
@@ -113,7 +115,7 @@ export default function HistoryScreen() {
                       filter === 'all' ? { color: '#fff' } : { color: activeColors.textPrimary },
                     ]}
                   >
-                    All Reports ({MOCK_HISTORY.length})
+                    All Reports ({historyList.length})
                   </Text>
                 </TouchableOpacity>
 
@@ -148,13 +150,19 @@ export default function HistoryScreen() {
           </AnimatedCard>
         )}
         ListEmptyComponent={
-          <View style={[styles.emptyContainer, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
-            <Ionicons name="document-text-outline" size={48} color={activeColors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: activeColors.textPrimary }]}>No Predictions Found</Text>
-            <Text style={[styles.emptyDesc, { color: activeColors.textSecondary }]}>
-              Start a new soil test prediction to build your history log.
-            </Text>
-          </View>
+          loading ? (
+            <View style={{ padding: 40, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+            </View>
+          ) : (
+            <View style={[styles.emptyContainer, { backgroundColor: activeColors.card, borderColor: activeColors.border }]}>
+              <Ionicons name="document-text-outline" size={48} color={activeColors.textSecondary} />
+              <Text style={[styles.emptyTitle, { color: activeColors.textPrimary }]}>No Predictions Found</Text>
+              <Text style={[styles.emptyDesc, { color: activeColors.textSecondary }]}>
+                Start a new soil test prediction to build your history log.
+              </Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>

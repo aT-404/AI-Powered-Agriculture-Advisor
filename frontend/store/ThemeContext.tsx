@@ -7,6 +7,7 @@ type ThemeType = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   theme: 'light' | 'dark';
+  isDark: boolean;
   themeSetting: ThemeType;
   setThemeSetting: (setting: ThemeType) => void;
   activeColors: typeof colors.neutral & {
@@ -18,6 +19,7 @@ const THEME_STORAGE_KEY = '@app_theme_setting';
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
+  isDark: false,
   themeSetting: 'system',
   setThemeSetting: () => {},
   activeColors: {
@@ -78,8 +80,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Don't render until theme is loaded to prevent flicker
   if (!isLoaded) return null;
 
+  const isDark = theme === 'dark';
+
   return (
-    <ThemeContext.Provider value={{ theme, themeSetting, setThemeSetting, activeColors }}>
+    <ThemeContext.Provider value={{ theme, isDark, themeSetting, setThemeSetting, activeColors }}>
       {children}
     </ThemeContext.Provider>
   );
