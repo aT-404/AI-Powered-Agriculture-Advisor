@@ -4,12 +4,12 @@ Django settings for backend project.
 
 import os
 from pathlib import Path
+from datetime import timedelta
+import dj_database_url
 
 try:
     from dotenv import load_dotenv
-    # Load .env from project root (one level up from BASE_DIR)
-    root_env = Path(__file__).resolve().parent.parent.parent / '.env'
-    load_dotenv(root_env)
+    load_dotenv()
 except ImportError:
     pass
 
@@ -35,9 +35,18 @@ INSTALLED_APPS = [
     # Third party apps
     'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     # Local apps
     'prediction',
+    'accounts',
+    'crops',
+    'predictions',
+    'market',
+    'drf_spectacular',
 ]
+
+AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -50,8 +59,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CORS Configuration for local development with Expo
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS Configuration
+if os.environ.get('DEBUG', 'True').lower() in ('true', '1', 't'):
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()
+    ]
 
 
 ROOT_URLCONF = 'config.urls'
@@ -77,14 +92,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'postgres'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        ssl_require=False
+    )
 }
 
 # Password validation
@@ -114,3 +126,33 @@ STATIC_URL = 'static/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': False,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'CropWise AI Advisor API',
+    'DESCRIPTION': 'Complete API documenting JWT Auth, Crops directory, predictions engine, and Agmarknet market intelligence.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
+MARKET_PRICE_CACHE_MINUTES = int(os.environ.get('MARKET_PRICE_CACHE_MINUTES', 1440))
+
+

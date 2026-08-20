@@ -1,0 +1,460 @@
+{
+    "info": {
+        "_postman_id": "cropwise-ai-agriculture-advisor-api",
+        "name": "AI-Powered Agriculture Advisor (CropWise AI) — Full API",
+        "description": "Complete Postman collection for the AI-Powered Agriculture Advisor Django REST API. Includes JWT Authentication, ML Crop Recommendation, Yield Prediction, Weather Forecast, Mandi Market Rates, Price Trend Analytics, and Price Alerts.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "accessToken",
+            "value": "",
+            "type": "string",
+            "description": "Paste your JWT access token here after login/register"
+        },
+        {
+            "key": "refreshToken",
+            "value": "",
+            "type": "string",
+            "description": "Paste your JWT refresh token here after login/register"
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Authentication",
+            "description": "JWT-based authentication endpoints — register, login, logout, profile, and password management.",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"password\": \"StrongPassword123\",\n  \"first_name\": \"Ramesh\",\n  \"last_name\": \"Kumar\",\n  \"phone\": \"9876543210\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/register/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "register", ""]
+                        },
+                        "description": "Register a new user. Returns user details + JWT access and refresh tokens."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"password\": \"StrongPassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "login", ""]
+                        },
+                        "description": "Login with email and password. Returns user details + JWT access and refresh tokens."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/token/refresh/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "token", "refresh", ""]
+                        },
+                        "description": "Exchange a valid refresh token for a new access token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/logout/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "logout", ""]
+                        },
+                        "description": "Blacklists the provided refresh token, effectively logging out the user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/profile/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "profile", ""]
+                        },
+                        "description": "Retrieve the authenticated user's profile details. Requires valid JWT access token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Profile (PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"first_name\": \"Suresh\",\n  \"last_name\": \"Rao\",\n  \"phone\": \"9999999999\",\n  \"location\": \"Kothamangalam, Kerala\",\n  \"latitude\": 10.05,\n  \"longitude\": 76.62\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/profile/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "profile", ""]
+                        },
+                        "description": "Full profile update. Cannot modify is_staff or is_superuser."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Profile (PATCH)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"location\": \"Muvattupuzha, Kerala\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/profile/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "profile", ""]
+                        },
+                        "description": "Partial profile update. Only provided fields are updated."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"old_password\": \"StrongPassword123\",\n  \"new_password\": \"NewSecurePass456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/change-password/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "auth", "change-password", ""]
+                        },
+                        "description": "Changes the authenticated user's password. Validates old password before updating."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2. Health & Status",
+            "item": [
+                {
+                    "name": "API Health Check",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/health/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "health", ""]
+                        },
+                        "description": "Checks backend API server operational status and loaded features."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "3. ML Crop Prediction",
+            "item": [
+                {
+                    "name": "Crop Recommendation ML",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"N\": 90,\n  \"P\": 42,\n  \"K\": 43,\n  \"temperature\": 25.5,\n  \"humidity\": 80.0,\n  \"ph\": 6.5,\n  \"rainfall\": 202.0\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/predict/crop/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "predict", "crop", ""]
+                        },
+                        "description": "Recommends optimal crop based on soil nutrients (N, P, K), temperature, humidity, pH, and rainfall using an ML model."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "4. Weather Service (Open-Meteo)",
+            "item": [
+                {
+                    "name": "Get Weather by Location Name",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/weather/?location=Kothamangalam",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "weather", ""],
+                            "query": [
+                                { "key": "location", "value": "Kothamangalam" }
+                            ]
+                        },
+                        "description": "Fetches current agricultural weather metrics and 7-day forecast by city/location name."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Weather by GPS Coordinates",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/weather/?latitude=10.05&longitude=76.62",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "weather", ""],
+                            "query": [
+                                { "key": "latitude", "value": "10.05" },
+                                { "key": "longitude", "value": "76.62" }
+                            ]
+                        },
+                        "description": "Fetches weather data using exact GPS latitude and longitude coordinates."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "5. Market Intelligence (Agmarknet / Mandi Rates)",
+            "item": [
+                {
+                    "name": "Get Market Filters",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/market/filters/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "market", "filters", ""]
+                        },
+                        "description": "Fetches available States, Districts, Mandis, and Commodities for dropdown filters."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Live Mandi Prices",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/market/prices/?commodity=Tomato&state=Kerala&district=Ernakulam&market=Muvattupuzha",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "market", "prices", ""],
+                            "query": [
+                                { "key": "commodity", "value": "Tomato" },
+                                { "key": "state", "value": "Kerala" },
+                                { "key": "district", "value": "Ernakulam" },
+                                { "key": "market", "value": "Muvattupuzha" }
+                            ]
+                        },
+                        "description": "Returns current minimum, modal, and maximum market prices for a commodity at a specific mandi."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Price Trends (7-Day)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/market/trends/?commodity=Tomato&market=Muvattupuzha&days=7",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "market", "trends", ""],
+                            "query": [
+                                { "key": "commodity", "value": "Tomato" },
+                                { "key": "market", "value": "Muvattupuzha" },
+                                { "key": "days", "value": "7" }
+                            ]
+                        },
+                        "description": "Returns 7-day historical price data points, percentage change, and trend direction."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Price Trends (30-Day)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/market/trends/?commodity=Tomato&market=Muvattupuzha&days=30",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "market", "trends", ""],
+                            "query": [
+                                { "key": "commodity", "value": "Tomato" },
+                                { "key": "market", "value": "Muvattupuzha" },
+                                { "key": "days", "value": "30" }
+                            ]
+                        },
+                        "description": "Returns 30-day historical price data points, percentage change, and trend direction."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "6. Price Alert System",
+            "item": [
+                {
+                    "name": "List User Price Alerts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/alerts/?user_identifier=default_farmer",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "alerts", ""],
+                            "query": [
+                                { "key": "user_identifier", "value": "default_farmer" }
+                            ]
+                        },
+                        "description": "Retrieves all configured target price alerts for a specific farmer/user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Price Alert",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_identifier\": \"default_farmer\",\n  \"commodity\": \"Tomato\",\n  \"market\": \"Muvattupuzha\",\n  \"state\": \"Kerala\",\n  \"district\": \"Ernakulam\",\n  \"target_price\": 3000.0,\n  \"condition\": \"GTE\",\n  \"is_active\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/alerts/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "alerts", ""]
+                        },
+                        "description": "Creates a new commodity price alert. condition: GTE (>=) or LTE (<=). Immediately checked against live market price."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Price Alert (PATCH)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"target_price\": 2800.0\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/alerts/1/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "alerts", "1", ""]
+                        },
+                        "description": "Partially updates a specific price alert by ID."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Toggle Price Alert Status",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/alerts/1/toggle/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "alerts", "1", "toggle", ""]
+                        },
+                        "description": "Toggles active/inactive status of a price alert by ID."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Batch Check All Active Alerts",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/alerts/check/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "alerts", "check", ""]
+                        },
+                        "description": "Evaluates all active alerts against live market price feeds and triggers matching ones."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Price Alert",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/alerts/1/",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "alerts", "1", ""]
+                        },
+                        "description": "Permanently deletes a price alert by ID."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
