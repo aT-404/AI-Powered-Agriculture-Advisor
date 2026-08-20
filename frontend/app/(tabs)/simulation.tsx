@@ -80,7 +80,7 @@ export default function SimulationScreen() {
         maximumValue={max}
         step={step}
         value={Number(formData[field])}
-        onValueChange={(val: number) => handleSliderChange(field, val)}
+        onValueChange={(val) => handleSliderChange(field, val)}
         minimumTrackTintColor={colors.primary.DEFAULT}
         maximumTrackTintColor={activeColors.border}
         thumbTintColor={colors.primary.DEFAULT}

@@ -2,11 +2,15 @@
 node_modules/
 frontend/node_modules/
 backend/node_modules/
+web/node_modules/
+front_end_web/node_modules/
 
-# Expo
+# Expo & Web builds
 .expo/
 frontend/.expo/
 dist/
+web/dist/
+front_end_web/dist/
 web-build/
 expo-env.d.ts
 frontend/expo-env.d.ts
@@ -36,6 +40,8 @@ Thumbs.db
 # Environment
 .env*.local
 .env
+web/.env
+front_end_web/.env
 
 # TypeScript
 *.tsbuildinfo
@@ -58,6 +64,7 @@ ENV/
 env.bak/
 venv.bak/
 .venv/
+.venv_313/
 
 # Django & SQLite
 *.sqlite3

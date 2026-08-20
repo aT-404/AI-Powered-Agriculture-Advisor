@@ -1,43 +1,46 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+/**
+ * Local Storage Helper Utilities
+ * TODO: Replace with @react-native-async-storage/async-storage or expo-secure-store once installed
+ */
 
+// In-memory fallback mock storage for development/skeleton phase
 const memoryStorage: Record<string, string> = {};
 
 export const storage = {
   async getItem(key: string): Promise<string | null> {
     try {
-      const val = await AsyncStorage.getItem(key);
-      if (val !== null) return val;
+      // TODO: Connect to AsyncStorage.getItem(key)
       return memoryStorage[key] || null;
     } catch (error) {
-      console.warn(`[storage] Falling back to memory for key "${key}":`, error);
-      return memoryStorage[key] || null;
+      console.error(`Error reading storage key "${key}":`, error);
+      return null;
     }
   },
 
   async setItem(key: string, value: string): Promise<void> {
     try {
+      // TODO: Connect to AsyncStorage.setItem(key, value)
       memoryStorage[key] = value;
-      await AsyncStorage.setItem(key, value);
     } catch (error) {
-      console.warn(`[storage] Could not save to AsyncStorage, stored in memory:`, error);
+      console.error(`Error setting storage key "${key}":`, error);
     }
   },
 
   async removeItem(key: string): Promise<void> {
     try {
+      // TODO: Connect to AsyncStorage.removeItem(key)
       delete memoryStorage[key];
-      await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.warn(`[storage] Could not remove from AsyncStorage:`, error);
+      console.error(`Error removing storage key "${key}":`, error);
     }
   },
 
   async clear(): Promise<void> {
     try {
+      // TODO: Connect to AsyncStorage.clear()
       Object.keys(memoryStorage).forEach((k) => delete memoryStorage[k]);
-      await AsyncStorage.clear();
     } catch (error) {
-      console.warn('Error clearing storage:', error);
+      console.error('Error clearing storage:', error);
     }
   },
 };
